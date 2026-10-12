@@ -1,44 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Grid, type CellRendererProps, type ColumnDefinition, type GridApi } from '@nord-forge/the-grid';
+import { Grid, type GridApi } from '@nord-forge/the-grid';
 import '@nord-forge/the-grid/styles.css';
-
-type Person = {
-  id: string;
-  name: string;
-  team: string;
-  role: string;
-  status: string;
-  budget: number;
-};
-
-const names = ['Alex Morgan', 'Sam Chen', 'Robin De Smet', 'Jamie Park', 'Casey Laurent', 'Taylor Jacobs', 'Noor Peeters', 'Charlie Williams', 'Luca Rossi', 'Drew Kim', 'Morgan Dubois', 'Avery Patel'];
-const teams = ['Engineering', 'Design', 'Operations', 'Product'];
-const roles = ['Developer', 'Designer', 'Team lead', 'Specialist'];
-const statuses = ['Active', 'Active', 'On leave', 'Invited'];
-
-function makeRows(count: number): Person[] {
-  return Array.from({ length: count }, (_, index) => ({
-    id: `person-${index + 1}`,
-    name: names[index % names.length]!,
-    team: teams[index % teams.length]!,
-    role: roles[Math.floor(index / 3) % roles.length]!,
-    status: statuses[Math.floor(index / 2) % statuses.length]!,
-    budget: 1200 + ((index * 173) % 4800),
-  }));
-}
-
-function StatusCell({ value }: CellRendererProps<Person>) {
-  return <span className="demo-status" data-status={String(value).toLowerCase().replace(' ', '-')}><span aria-hidden="true">●</span> {String(value)}</span>;
-}
-
-const columns: ColumnDefinition<Person>[] = [
-  { colId: 'select', headerName: '', width: 44, minWidth: 44, maxWidth: 44, pinned: 'left', checkboxSelection: true, headerCheckboxSelection: true, resizable: false, sortable: false },
-  { field: 'name', headerName: 'Name', width: 190, pinned: 'left', editable: true, filter: 'text' },
-  { field: 'team', headerName: 'Team', width: 145, filter: 'set', enableRowGroup: true },
-  { field: 'role', headerName: 'Role', width: 145, editable: true, filter: 'text' },
-  { field: 'status', headerName: 'Status', width: 120, filter: 'set', cellRenderer: StatusCell },
-  { field: 'budget', headerName: 'Budget', width: 125, filter: 'number', valueFormatter: ({ value }) => new Intl.NumberFormat('en-GB', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(value)) },
-];
+import { demoColumns } from './demoColumns';
+import { makeRows, type Person } from './demoData';
 
 export default function GridDemo({ preview = false }: { preview?: boolean }) {
   const api = useRef<GridApi<Person> | null>(null);
@@ -46,6 +10,7 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState(0);
   const [grouped, setGrouped] = useState(false);
+  const [changes, setChanges] = useState(0);
   const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
   const [theme, setTheme] = useState<'light' | 'dark'>('light');
   const count = preview ? 24 : 1000;
@@ -65,6 +30,7 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
     setSearch('');
     setSelected(0);
     setGrouped(false);
+    setChanges(0);
     setRevision((value) => value + 1);
   }
 
@@ -91,7 +57,7 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
           key={revision}
           apiRef={api}
           data={data}
-          columns={columns}
+          columns={demoColumns}
           defaultColumn={{ sortable: true, resizable: true }}
           className="docs-grid"
           colorScheme={theme}
@@ -104,10 +70,14 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
           headerMenuButton
           headerFilterButton="always"
           ariaLabel="People example"
-          on={{ selectionChanged: () => setSelected(api.current?.getSelectedRows().length ?? 0) }}
+          on={{
+            selectionChanged: () => setSelected(api.current?.getSelectedRows().length ?? 0),
+            rowsChanged: () => setSelected(api.current?.getSelectedRows().length ?? 0),
+            cellValueChanged: () => setChanges((value) => value + 1),
+          }}
         />
       </div>
-      <div className="demo-footer"><span aria-live="polite">{count.toLocaleString('en-GB')} rows · {selected} selected</span><span>Sort a column. Double-click a name to edit.</span></div>
+      <div className="demo-footer"><span aria-live="polite">{count.toLocaleString('en-GB')} rows · {selected} selected · {changes} changes</span><span>Double-click to edit. Changes stay in this demo.</span></div>
     </section>
   );
 }

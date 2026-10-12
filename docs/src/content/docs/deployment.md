@@ -42,7 +42,9 @@ The root directory matters: examples import the current library source from `src
 
 ## Production URL
 
-Optionally set the Vercel environment variable `DOCS_SITE_URL` to your full production URL, such as `https://grid.your-domain.com`. Astro uses it for canonical URLs and Starlight's sitemap integration. Rebuild after changing it.
+The production docs are at [the-grid.nickbevers.dev](https://the-grid.nickbevers.dev/). Astro uses this URL for canonical links and the sitemap by default.
+
+When moving to a different domain, set the Vercel environment variable `DOCS_SITE_URL` to that full URL and connect the domain to the project. Rebuild after changing it.
 
 No environment variables are required for the docs or live example. The example data is generated in the browser.
 

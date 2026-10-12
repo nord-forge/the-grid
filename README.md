@@ -55,7 +55,7 @@ export function People({ people }: { people: Person[] }) {
 
 ## Documentation site
 
-Read the [live documentation](https://the-grid-beige.vercel.app).
+Read the [live documentation](https://the-grid.nickbevers.dev/).
 
 The Astro Starlight site lives in `docs/` and includes guides, an API reference, and a live grid example. Use Node.js 22.12 or later:
 
@@ -66,7 +66,7 @@ npm run docs:dev
 
 Run `npm run docs:build` to type check and build it, or `npm run docs:preview` to preview the production build with search.
 
-To deploy on Vercel, import **nord-forge/the-grid** with the **repository root** as Root Directory and the **Astro** framework preset. The root `vercel.json` installs only the docs dependencies, builds the site, and serves `docs/dist`. Optionally set `DOCS_SITE_URL` to your production URL for canonical links and the sitemap. See [docs/README.md](docs/README.md) for details.
+To deploy on Vercel, import **nord-forge/the-grid** with the **repository root** as Root Directory and the **Astro** framework preset. The root `vercel.json` installs only the docs dependencies, builds the site, and serves `docs/dist`. The production URL is `https://the-grid.nickbevers.dev/`; set `DOCS_SITE_URL` to override it for another domain. See [docs/README.md](docs/README.md) for details.
 
 ## Library development
 

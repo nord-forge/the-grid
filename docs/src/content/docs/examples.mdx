@@ -15,15 +15,18 @@ This grid contains 1,000 generated people. It renders the rows and columns aroun
 - **Filter:** use the search field for a quick filter, or the filter button in a heading for a column filter.
 - **Group:** choose **Group by team**, then expand and collapse the groups.
 - **Select:** use the row checkboxes. The header checkbox selects all matching rows.
-- **Edit:** double-click a name or role, type a new value, and press Enter. Escape cancels.
+- **Edit text:** double-click a name or role, type a new value, and press Enter. Escape cancels.
+- **Choose a team or status:** double-click a Team or Status cell to open its dropdown editor. Selecting an option saves the choice.
+- **Edit a budget:** double-click a Budget cell and enter a non-negative euro amount with up to two decimal places. Enter or Tab saves it; Escape cancels. Sorting and filtering keep using numeric values.
 - **Ranges:** drag across cells, or use Shift with the arrow keys. Copy uses the formatted cell values.
+- **Paste and fill:** paste values into editable cells or drag the fill handle on a range. Team and Status accept their listed options; Budget accepts numbers and copied euro amounts. Invalid values are rejected without overwriting the original data.
 - **Layout:** resize a column using its header edge. The name column stays pinned while you scroll horizontally.
 
 Changes live only in this example. **Reset** creates fresh rows and resets the grid. The [editing guide](/guides/editing/) explains how to persist writes to your API.
 
 ## How it is built
 
-The example imports `Grid` from this repository's current source. It uses a local data source, typed columns, a custom status renderer, and the default stylesheet with a teal accent.
+The example imports `Grid` from this repository's current source. It uses a local data source, typed columns, custom dropdown and numeric editors, a status renderer, and the default stylesheet with a teal accent. The change counter records successful writes.
 
 ```tsx
 <Grid<Person>
@@ -41,4 +44,4 @@ The example imports `Grid` from this repository's current source. It uses a loca
 />
 ```
 
-Browse the [example source on GitHub](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/GridDemo.tsx) for the complete implementation.
+Browse the [grid component](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/GridDemo.tsx), [column definitions](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/demoColumns.tsx), and [editors](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/DemoEditors.tsx) on GitHub for the complete implementation.

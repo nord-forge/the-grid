@@ -1,6 +1,6 @@
 # The grid documentation
 
-Live site: https://the-grid-beige.vercel.app (Vercel project `nickbevers/the-grid`).
+Live site: https://the-grid.nickbevers.dev/ (Vercel project `nickbevers/the-grid`).
 
 An Astro Starlight site with a live React example, guides, and public API reference. It imports the library directly from this checkout. The docs have their own package manifest and lockfile and are excluded from the published library package.
 
@@ -25,7 +25,7 @@ Import `nord-forge/the-grid`, keep the Root Directory at the repository root, se
 
 The repository root must remain available because the live example imports `../src/`. There is no need to install root dependencies or publish the library first. No Vercel adapter is needed for this static site.
 
-Optionally set `DOCS_SITE_URL` to the full production URL for canonical links and sitemap generation. No environment variables or external APIs are required by the example.
+Canonical links and the sitemap use `https://the-grid.nickbevers.dev/`. Set `DOCS_SITE_URL` to override this when moving to a different domain. No environment variables or external APIs are required by the example.
 
 ## Maintain
 
@@ -35,7 +35,11 @@ Optionally set `DOCS_SITE_URL` to the full production URL for canonical links an
 - Logo: `src/assets/logo.svg` and `src/assets/logo-dark.svg`
 - Favicon: `public/favicon.svg`
 - Interactive grid: `src/components/GridDemo.tsx`
+- Demo data and columns: `src/components/demoData.ts` and `src/components/demoColumns.tsx`
+- Dropdown and currency editors: `src/components/DemoEditors.tsx`
 - Type-checked quickstart: `src/examples/People.tsx`
+
+Run `npm run docs:test` from the repository root to check the demo editors through the grid's edit, paste, and fill pipeline. This uses the root development dependencies.
 
 The Vite aliases resolve the current library source and its React peers using the docs installation. The React integration pins its compatible Vite plugin version, and the selector-parser override uses the patched release in the build toolchain.
 

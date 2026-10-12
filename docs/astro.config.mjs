@@ -6,8 +6,8 @@ import starlight from '@astrojs/starlight';
 const path = (value) => fileURLToPath(new URL(value, import.meta.url));
 
 export default defineConfig({
-  // Set DOCS_SITE_URL to your production URL to enable canonical URLs and a sitemap.
-  ...(process.env.DOCS_SITE_URL ? { site: process.env.DOCS_SITE_URL } : {}),
+  // Override when the docs move to another domain.
+  site: process.env.DOCS_SITE_URL || 'https://the-grid.nickbevers.dev/',
   output: 'static',
   integrations: [
     react(),
