@@ -81,4 +81,4 @@ Use the height props for layout changes. Styling row heights alone does not upda
 
 ## Replace interface pieces
 
-Use `icons` for sort, filter, menu, and expand glyphs. The `renderMenu`, `renderPopup`, `renderColumnChooser`, and `renderFilterPanel` props let the grid use your application's components. Menus and popup editors can portal into `popupContainer`.
+Use `icons` for sort, filter, menu, and expand glyphs. `icons.select` is passed to custom cell editors through `CellEditorProps.icons` for their select indicator. The `renderMenu`, `renderPopup`, `renderColumnChooser`, and `renderFilterPanel` props let the grid use your application's components. Menus and popup editors can portal into `popupContainer`.

@@ -651,6 +651,18 @@
         padding: 0 1px 1px 0;
     }
 
+    /* Section starts draw their left ring inside the cell, clear of the pinned border. */
+    :where([data-grid-part='root']) :where([data-grid-part='cell'][data-editing][data-section-start]) {
+        padding-left: 1px;
+    }
+
+    /* At the top, the first row owns the line below the header inside its cells. */
+    :where([data-grid-part='root']:not([data-scrolled-top]))
+        :where([data-grid-part='row'][data-first-row])
+        :where([data-grid-part='cell'][data-editing]) {
+        padding-top: 1px;
+    }
+
     :where([data-grid-part='root']) :where([data-grid-editor]) {
         display: flex;
         flex-direction: column;

@@ -212,8 +212,10 @@ export type GridProps<TData> = {
     ariaLabel?: string;
 };
 
-/** Icons the grid draws itself. Each is rendered inside its button or indicator part. */
+/** Glyph overrides for grid controls and custom editors. Each component renders only the icons it uses. */
 export type GridIcons = {
+    /** Select-editor indicator, exposed to custom editors through `CellEditorProps.icons`. */
+    select?: ReactNode;
     sortAscending?: ReactNode;
     sortDescending?: ReactNode;
     /** Group header toggle while the group is open (it collapses on click). */

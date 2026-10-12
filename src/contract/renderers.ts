@@ -10,6 +10,7 @@ import type { GridApi } from './api';
 import type { ResolvedColumn, ValueFormatter, ValueGetter, ValueSetter } from './columns';
 import type { FilterKind } from './filters';
 import type { AnchorRect } from './geometry';
+import type { GridIcons } from './props';
 import type { DataRow, DetailRow, FullWidthRow, GridRow, GroupRow, RowWithData } from './rows';
 
 export type CellRendererProps<TData, TValue = unknown> = {
@@ -83,6 +84,8 @@ export type EditorKeyPolicy = {
 };
 
 export type CellEditorProps<TData, TValue = unknown> = {
+    /** Grid-level glyph overrides. Editors choose which indicators they render. */
+    icons?: GridIcons;
     row: DataRow<TData>;
     data: TData;
     column: ResolvedColumn<TData, TValue>;

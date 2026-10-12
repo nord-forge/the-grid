@@ -41,6 +41,8 @@ Canonical links and the sitemap use `https://the-grid.nickbevers.dev/`. Set `DOC
 
 Run `npm run docs:test` from the repository root to check the demo editors through the grid's edit, paste, and fill pipeline. This uses the root development dependencies.
 
+After building and starting `npm run docs:preview`, run `npm run docs:browser` for isolated, headless Playwright checks. To check production, pass `-- --url=https://the-grid.nickbevers.dev/`. The checks cover editing, configurable icons, border pixels, search, and desktop/mobile layout, and save screenshots under `/private/tmp/the-grid-browser-review`.
+
 The Vite aliases resolve the current library source and its React peers using the docs installation. The React integration pins its compatible Vite plugin version, and the selector-parser override uses the patched release in the build toolchain.
 
 Documentation follows the 0.x source API and makes its current limits explicit. GitHub and edit links point to `nord-forge/the-grid`.

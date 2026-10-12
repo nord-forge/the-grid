@@ -73,6 +73,8 @@ The default text editor does not infer the type of your data. Use an editor pars
 
 A custom editor receives `draft`, `setDraft`, `stop(commit)`, `error`, and its cell anchor. Its `parse` function may be async. A failed parse keeps the editor open with an error.
 
+Grid icon overrides are available through `CellEditorProps.icons`. For a custom select, use `icons.select` as its indicator, and render it only inside the editor. The [live example](/examples/#select-editor-icons) demonstrates a configurable chevron and per-column icon overrides.
+
 Set an editor's `presentation` to `'popup'` to use the popup host. Its `keyPolicy` can customize Enter and Tab behavior.
 
 ## Permissions and bulk writes

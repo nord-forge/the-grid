@@ -1378,6 +1378,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                     column={resolved}
                     anchor={geometry.getCellAnchor(editSession.cell)}
                     renderPopup={props.renderPopup}
+                    icons={props.icons}
                     onClosed={focusViewport}
                     escape={props.editorEscape ?? 'stop'}
                 />
@@ -2364,6 +2365,7 @@ function ResizeHandle({
 }
 
 type EditorHostProps<TData> = {
+    icons?: GridIcons;
     store: GridStore<TData>;
     api: GridApi<TData>;
     row: DataRow<TData>;
@@ -2378,7 +2380,17 @@ type EditorHostProps<TData> = {
  * Hosts the active editor: inline in the cell or in a popup at the cell's anchor. Applies the editor's key
  * policy and commits on blur, all through the store's single stop path.
  */
-function EditorHost<TData>({ store, api, row, column, anchor, renderPopup, onClosed, escape }: EditorHostProps<TData>) {
+function EditorHost<TData>({
+    store,
+    api,
+    row,
+    column,
+    anchor,
+    renderPopup,
+    onClosed,
+    escape,
+    icons,
+}: EditorHostProps<TData>) {
     const session = store.editSession!;
     const Editor = (column.editor ?? TextCellEditor) as NonNullable<ResolvedColumn<TData>['editor']>;
     const policy = keyPolicyOf(column.editor);
@@ -2462,6 +2474,7 @@ function EditorHost<TData>({ store, api, row, column, anchor, renderPopup, onClo
         }
     };
     const editorProps: CellEditorProps<TData> = {
+        icons,
         row,
         data: row.data,
         column,

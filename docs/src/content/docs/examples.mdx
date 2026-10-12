@@ -17,6 +17,7 @@ This grid contains 1,000 generated people. It renders the rows and columns aroun
 - **Select:** use the row checkboxes. The header checkbox selects all matching rows.
 - **Edit text:** double-click a name or role, type a new value, and press Enter. Escape cancels.
 - **Choose a team or status:** double-click a Team or Status cell to open its dropdown editor. Selecting an option saves the choice.
+- **Customize select icons:** choose Chevron, Caret, or None in the toolbar, then open a Team or Status editor. Indicators appear only while editing.
 - **Edit a budget:** double-click a Budget cell and enter a non-negative euro amount with up to two decimal places. Enter or Tab saves it; Escape cancels. Sorting and filtering keep using numeric values.
 - **Ranges:** drag across cells, or use Shift with the arrow keys. Copy uses the formatted cell values.
 - **Paste and fill:** paste values into editable cells or drag the fill handle on a range. Team and Status accept their listed options; Budget accepts numbers and copied euro amounts. Invalid values are rejected without overwriting the original data.
@@ -45,3 +46,17 @@ The example imports `Grid` from this repository's current source. It uses a loca
 ```
 
 Browse the [grid component](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/GridDemo.tsx), [column definitions](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/demoColumns.tsx), and [editors](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/DemoEditors.tsx) on GitHub for the complete implementation.
+
+## Select editor icons
+
+Supply a custom glyph through the grid's `icons.select`. Custom editors receive it through `CellEditorProps.icons`; the demo's dropdown editor renders it over the native select using CSS grid. It does not add an indicator to display cells.
+
+```tsx
+<Grid
+  data={data}
+  columns={columns}
+  icons={{ select: <YourChevronIcon /> }}
+/>
+```
+
+Set `select: false` to hide the indicator. The demo editor also accepts `cellEditorParams: { icon: <YourChevronIcon /> }` for a column-specific override.
