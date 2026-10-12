@@ -1,0 +1,52 @@
+---
+title: the grid
+description: A virtualized React data grid that fits your app. No runtime dependencies beyond React, with local and server data, editing, and a theme you own.
+template: splash
+hero:
+  title: Your data. In its place.
+  tagline: A virtualized React data grid built in normal document flow. Bring your data, your components, and your own style.
+  actions:
+    - text: Get started
+      link: /getting-started/
+      icon: right-arrow
+    - text: Explore the examples
+      link: /examples/
+      variant: secondary
+---
+
+import { Card, CardGrid, LinkCard } from '@astrojs/starlight/components';
+import GridDemo from '../../components/GridDemo';
+
+## A working grid, right here
+
+Sort, filter, select, and edit. This is the same component you install in your app.
+
+<GridDemo client:only="react" preview><p slot="fallback">Loading the interactive grid…</p></GridDemo>
+
+<CardGrid>
+  <Card title="Normal document flow" icon="multiple-pages">
+    Rows and cells use flex and grid. Headers and pinned columns use sticky positioning. No absolutely positioned cells.
+  </Card>
+  <Card title="Local or server data" icon="database">
+    Work with an in-memory array, or fetch blocks from your API. The grid handles virtualization, caching, and loading states.
+  </Card>
+  <Card title="Your components, your theme" icon="pencil">
+    Use React renderers and editors. Style public parts with CSS variables and a default theme designed to be overridden.
+  </Card>
+  <Card title="One path for writes" icon="approve-check">
+    Editing, paste, fill, and bulk writes share optimistic updates, persistence, and rollback for rejected cells.
+  </Card>
+</CardGrid>
+
+## Start small. Add what you need.
+
+React 19 · TypeScript · MIT · No runtime dependencies beyond React
+
+<CardGrid>
+  <LinkCard title="Your first grid" description="Install the package and render a typed collection." href="/getting-started/" />
+  <LinkCard title="Style it your way" description="Theme tokens, density, and the public styling API." href="/guides/styling/" />
+</CardGrid>
+
+:::note[Early release]
+The grid is currently 0.x. The public API may change before 1.0. These docs follow the source in the repository.
+:::

@@ -1,0 +1,91 @@
+---
+title: Editing and persisted writes
+description: Make cells editable, validate drafts, and persist optimistic batches with rollback.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import amountEditorExample from '../../../examples/AmountEditor.tsx?raw';
+
+## Enable editing
+
+Set `editable: true` on a column. A field column gets a default setter; a computed value needs `valueSetter`. The default editor is a text input.
+
+```tsx
+const columns: ColumnDefinition<Person>[] = [
+  { field: 'name', headerName: 'Name', editable: true },
+  { field: 'team', headerName: 'Team' },
+];
+```
+
+An editable cell opens on double-click, Enter, F2, or typing. Set `editOnClick` for single-click editing. Escape cancels. `enterKey="moveDown"` changes Enter behavior outside an editor.
+
+## Persist a batch
+
+Editing, range edits, paste, fill, clear, and `api.writeCells()` share a batch-based write pipeline. Writes apply locally before `persist` runs.
+
+```tsx
+import type { WriteBatch, WriteResult } from '@nord-forge/the-grid';
+
+async function persist(batch: WriteBatch<Person>): Promise<WriteResult<Person>> {
+  const response = await fetch('/api/people/cells', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      source: batch.source,
+      writes: batch.writes.map(({ cell, value, oldValue, derived }) => ({
+        rowId: cell.rowId,
+        colId: cell.colId,
+        value,
+        oldValue,
+        derived,
+      })),
+    }),
+  });
+  if (!response.ok) throw new Error('Could not save changes');
+  return response.json();
+}
+
+<Grid<Person> data={data} columns={columns} persist={persist} />
+```
+
+The endpoint is application code. Return a `WriteResult` such as:
+
+```json
+{
+  "rejected": [
+    { "cell": { "rowId": "7", "colId": "name" }, "error": "Name is required" }
+  ],
+  "rows": [
+    { "id": 42, "name": "Alex Morgan", "team": "Design" }
+  ]
+}
+```
+
+Rejected cells roll back and show their errors. Returned rows reconcile local data by ID. Throwing rejects the entire batch. If newer writes are in flight, the newest operation owns reconciliation so an older response does not overwrite a newer edit.
+
+Returning `void` accepts the writes without returning authoritative rows. Use `on.writesSettled` for toasts or logging after a batch settles.
+
+## Numeric values and custom validation
+
+The default text editor does not infer the type of your data. Use an editor parser or a registered data type to preserve numeric values.
+
+<Code code={amountEditorExample} lang="tsx" title="AmountEditor.tsx" />
+
+A custom editor receives `draft`, `setDraft`, `stop(commit)`, `error`, and its cell anchor. Its `parse` function may be async. A failed parse keeps the editor open with an error.
+
+Set an editor's `presentation` to `'popup'` to use the popup host. Its `keyPolicy` can customize Enter and Tab behavior.
+
+## Permissions and bulk writes
+
+A cell must satisfy its column's `editable` setting and `clipboard.canWrite` permission for the shared write pipeline. Use the latter for locked rows or additional authorization rules in the UI; your backend must also authorize each write.
+
+```ts
+await api.writeCells([
+  { cell: { rowId: '7', colId: 'team' }, value: 'Design' },
+  { cell: { rowId: '42', colId: 'team' }, value: 'Design' },
+]);
+```
+
+`setCellValue()` is a lower-level setter that emits a change event. Use `writeCells()` when you need the persistence and rollback pipeline.
+
+`rangeEdit` applies an edit down the selected range in that column. `propagateWrite` derives sibling writes that are applied and persisted with the original edit.

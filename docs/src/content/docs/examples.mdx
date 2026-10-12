@@ -1,0 +1,44 @@
+---
+title: Live example
+description: Try sorting, filtering, grouping, selection, and editing on a live grid with 1,000 rows.
+---
+
+import GridDemo from '../../components/GridDemo';
+
+This grid contains 1,000 generated people. It renders the rows and columns around the viewport while keeping the complete local dataset available to the API.
+
+<GridDemo client:only="react"><p slot="fallback">Loading the interactive grid…</p></GridDemo>
+
+## Try it
+
+- **Sort:** click a column heading. Shift-click another heading to add a sort column.
+- **Filter:** use the search field for a quick filter, or the filter button in a heading for a column filter.
+- **Group:** choose **Group by team**, then expand and collapse the groups.
+- **Select:** use the row checkboxes. The header checkbox selects all matching rows.
+- **Edit:** double-click a name or role, type a new value, and press Enter. Escape cancels.
+- **Ranges:** drag across cells, or use Shift with the arrow keys. Copy uses the formatted cell values.
+- **Layout:** resize a column using its header edge. The name column stays pinned while you scroll horizontally.
+
+Changes live only in this example. **Reset** creates fresh rows and resets the grid. The [editing guide](/guides/editing/) explains how to persist writes to your API.
+
+## How it is built
+
+The example imports `Grid` from this repository's current source. It uses a local data source, typed columns, a custom status renderer, and the default stylesheet with a teal accent.
+
+```tsx
+<Grid<Person>
+  data={data}
+  columns={columns}
+  defaultColumn={{ sortable: true, resizable: true }}
+  rowSelection="multiple"
+  interaction="cell"
+  enableRanges
+  enableFill
+  stickyGroupRows
+  headerMenuButton
+  headerFilterButton="always"
+  ariaLabel="People example"
+/>
+```
+
+Browse the [example source on GitHub](https://github.com/nord-forge/the-grid/blob/main/docs/src/components/GridDemo.tsx) for the complete implementation.

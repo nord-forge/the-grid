@@ -1,0 +1,57 @@
+---
+title: Getting started
+description: Install the grid and render your first typed React data grid.
+---
+
+import { Code } from '@astrojs/starlight/components';
+import peopleExample from '../../examples/People.tsx?raw';
+
+## Install
+
+```sh
+npm install @nord-forge/the-grid
+```
+
+The grid expects React 19 and React DOM 19 in your application. It adds no runtime dependencies of its own.
+
+## Render your first grid
+
+Import the component, define your columns, and give the grid a data source. Import the default stylesheet once in your app.
+
+<Code code={peopleExample} lang="tsx" title="People.tsx" />
+
+Each row needs a stable identity. Return a string from `getRowId`; use a database ID or another stable key rather than the row's current position.
+
+## Give it room
+
+The default `virtual` layout renders rows and columns near the viewport. Its parent must have a bounded height, such as the `480px` height above. Without one, the grid cannot establish a useful scrolling viewport.
+
+Use the default virtual layout for production grids. The API also declares `layout="content"`, but the current implementation still uses the virtualizers, and `contentModeRowLimit` is not enforced yet.
+
+## Add interactions
+
+Features are explicit. Set `sortable` or `filter` on a column. Set `editable` to enable its editor. Enable selection and ranges on the grid:
+
+```tsx
+<Grid<Person>
+  data={{ type: 'local', rows: people, getRowId: (person) => String(person.id) }}
+  columns={columns}
+  rowSelection="multiple"
+  interaction="cell"
+  enableRanges
+  headerMenuButton
+  headerFilterButton="always"
+  ariaLabel="People"
+/>
+```
+
+## Frameworks with server rendering
+
+The grid uses browser layout measurement. In Astro, mount it inside a React island with `client:only="react"`. In a React server-component framework, use a client component and follow that framework's browser-only rendering approach when needed.
+
+## Next steps
+
+- [Try the live example](/examples/).
+- [Define columns and custom cells](/guides/columns/).
+- [Connect a server API](/guides/server-data/).
+- [Customize the theme](/guides/styling/).

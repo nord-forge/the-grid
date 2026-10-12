@@ -53,7 +53,20 @@ export function People({ people }: { people: Person[] }) {
 }
 ```
 
-## Development
+## Documentation site
+
+The Astro Starlight site lives in `docs/` and includes guides, an API reference, and a live grid example. Use Node.js 22.12 or later:
+
+```sh
+npm ci --prefix docs
+npm run docs:dev
+```
+
+Run `npm run docs:build` to type check and build it, or `npm run docs:preview` to preview the production build with search.
+
+To deploy on Vercel, import **nord-forge/the-grid** with the **repository root** as Root Directory and the **Astro** framework preset. The root `vercel.json` installs only the docs dependencies, builds the site, and serves `docs/dist`. Optionally set `DOCS_SITE_URL` to your production URL for canonical links and the sitemap. See [docs/README.md](docs/README.md) for details.
+
+## Library development
 
 | Command | What it does |
 | --- | --- |
@@ -73,6 +86,7 @@ export function People({ people }: { people: Person[] }) {
 | --- | --- | --- |
 | `src/` | yes | The library |
 | `playground/` | no | Development fixtures and their browser checks |
+| `docs/` | no | Astro Starlight docs and live examples |
 | `scripts/` | no | The styling and `dist` guards |
 
 ## Rules

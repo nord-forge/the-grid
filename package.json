@@ -44,6 +44,10 @@
         "access": "public"
     },
     "scripts": {
+        "docs:dev": "npm run dev --prefix docs",
+        "docs:check": "npm run check --prefix docs",
+        "docs:build": "npm run build --prefix docs",
+        "docs:preview": "npm run preview --prefix docs",
         "tsc": "tsc --noEmit",
         "build": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json && cp src/styles/grid.css dist/styles.css && node scripts/check-styles.mjs && node scripts/check-dist.mjs",
         "test": "vitest run src",
