@@ -3,3 +3,5 @@ dist
 playground/dist
 playground/results
 .DS_Store
+.vercel
+.env*

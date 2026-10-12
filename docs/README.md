@@ -1,5 +1,7 @@
 # The grid documentation
 
+Live site: https://the-grid-beige.vercel.app (Vercel project `nickbevers/the-grid`).
+
 An Astro Starlight site with a live React example, guides, and public API reference. It imports the library directly from this checkout. The docs have their own package manifest and lockfile and are excluded from the published library package.
 
 ## Run locally

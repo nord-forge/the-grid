@@ -1,0 +1,11 @@
+node_modules/
+**/node_modules/
+dist/
+docs/dist/
+docs/.astro/
+playground/
+**/*.test.ts
+**/*.test.tsx
+.env*
+.vercel/
+.git/

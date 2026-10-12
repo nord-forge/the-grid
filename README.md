@@ -55,6 +55,8 @@ export function People({ people }: { people: Person[] }) {
 
 ## Documentation site
 
+Read the [live documentation](https://the-grid-beige.vercel.app).
+
 The Astro Starlight site lives in `docs/` and includes guides, an API reference, and a live grid example. Use Node.js 22.12 or later:
 
 ```sh
