@@ -19,6 +19,8 @@ const columns: ColumnDefinition<Person>[] = [
 
 An editable cell opens on double-click, Enter, F2, or typing. Set `editOnClick` for single-click editing. Escape cancels. `enterKey="moveDown"` changes Enter behavior outside an editor.
 
+Double-click also opens an inline native `<select>` editor's choices immediately. This is enabled by default; set `openSelectOnDoubleClick={false}` to focus the editor without opening its picker. Keyboard and API editing keep their usual behavior. The grid uses the browser's [`showPicker()` API](https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/showPicker); browsers without it still focus the select for manual interaction. Custom dropdown components control their own popup behavior.
+
 ## Persist a batch
 
 Editing, range edits, paste, fill, clear, and `api.writeCells()` share a batch-based write pipeline. Writes apply locally before `persist` runs.

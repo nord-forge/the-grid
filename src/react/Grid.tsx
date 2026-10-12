@@ -26,6 +26,7 @@ import {
     type PointerEvent as ReactPointerEvent,
     type ReactNode,
 } from 'react';
+import { flushSync } from 'react-dom';
 
 import type {
     AnchorRect,
@@ -990,7 +991,21 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
         store.events.emit('cellDoubleClicked', payloads.cell);
         store.events.emit('rowDoubleClicked', payloads.row);
         if (hit.cell.colId !== FULL_WIDTH_COLUMN && store.editing.canEdit(hit.cell)) {
-            editCell(hit.cell);
+            if (props.openSelectOnDoubleClick === false) {
+                editCell(hit.cell);
+            } else {
+                // Mount the editor within the trusted gesture: native pickers require user activation.
+                flushSync(() => editCell(hit.cell));
+                const select = hit.element.querySelector<HTMLSelectElement>('[data-grid-editor] select');
+                if (select?.showPicker && !select.disabled && select.size <= 1 && !select.multiple) {
+                    try {
+                        select.showPicker();
+                    } catch (error) {
+                        // Unsupported contexts (e.g. cross-origin frames) keep the focused editor usable.
+                        if (!(error instanceof DOMException)) throw error;
+                    }
+                }
+            }
         }
     };
     const onContextMenu = (event: ReactMouseEvent<HTMLDivElement>) => {

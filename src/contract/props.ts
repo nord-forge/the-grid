@@ -120,6 +120,8 @@ export type GridProps<TData> = {
     rowDragLabel?: (rows: GridRow<TData>[]) => string;
     /** Whether a single click on an editable cell starts editing. Default false (double click, Enter, F2 or typing). */
     editOnClick?: boolean;
+    /** Open an inline native select's picker immediately on double-click. Default true; requires browser showPicker support. */
+    openSelectOnDoubleClick?: boolean;
     /**
      * Escape in an editor cancels the edit. `stop` (default) keeps the key inside the grid; `propagate` lets
      * it reach the page as well, so an enclosing panel or dialog can close on the same key.

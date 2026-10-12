@@ -14,6 +14,7 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
     const [changes, setChanges] = useState(0);
     const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
     const [selectIcon, setSelectIcon] = useState<'chevron' | 'caret' | 'none'>('chevron');
+    const [openSelectOnDoubleClick, setOpenSelectOnDoubleClick] = useState(true);
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const count = preview ? 24 : 1000;
     const rows = useMemo(() => makeRows(count), [count, revision]);
@@ -90,6 +91,16 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                 >
                     Group by team
                 </button>
+                {!preview && (
+                    <label className="demo-auto-open">
+                        <input
+                            type="checkbox"
+                            checked={openSelectOnDoubleClick}
+                            onChange={(event) => setOpenSelectOnDoubleClick(event.target.checked)}
+                        />
+                        Open dropdown on double-click
+                    </label>
+                )}
                 <button type="button" onClick={reset}>
                     Reset
                 </button>
@@ -104,6 +115,7 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                     className="docs-grid"
                     colorScheme={theme}
                     density={density}
+                    openSelectOnDoubleClick={openSelectOnDoubleClick}
                     icons={{
                         select:
                             selectIcon === 'none' ? (

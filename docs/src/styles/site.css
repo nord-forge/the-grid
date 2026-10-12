@@ -231,6 +231,44 @@ h3 {
     justify-content: flex-end;
     font-variant-numeric: tabular-nums;
 }
+.demo-budget-editor {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    width: 100%;
+    height: 100%;
+    padding-inline: var(--the-grid-cell-padding-x);
+    font-variant-numeric: tabular-nums;
+}
+.demo-budget-value {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    flex: 0 1 auto;
+    min-width: 1ch;
+    max-width: calc(100% - 1ch);
+    height: 100%;
+}
+.demo-budget-measure {
+    grid-area: 1 / 1;
+    visibility: hidden;
+    white-space: pre;
+    overflow: hidden;
+}
+.demo-budget-editor input[data-grid-part='editor-input'] {
+    grid-area: 1 / 1;
+    /* The invisible text sets the width; the input's default 20-character size must not contribute. */
+    width: 0;
+    min-width: 100%;
+    padding: 0;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+.demo-auto-open {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+}
 @media (max-width: 600px) {
     .hero {
         padding-block: 1.5rem;

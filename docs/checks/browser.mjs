@@ -29,9 +29,16 @@ async function open(page, route = 'examples/') {
 
 async function edit(page, column, row = 'person-1') {
     const target = cell(page, column, row);
-    await target.dblclick();
+    if (column === 'team' || column === 'status') {
+        // Keyboard entry leaves the native picker closed for direct option/icon/border assertions.
+        await target.click();
+        await page.keyboard.press('F2');
+    } else {
+        await target.dblclick();
+    }
     await target.locator('[data-grid-part="editor-input"]').waitFor();
-    return target.locator('[data-grid-part="editor-input"]');
+    const input = target.locator('[data-grid-part="editor-input"]');
+    return input;
 }
 
 async function editingBorders(page, row, column, theme) {
@@ -134,6 +141,34 @@ try {
         assert.equal(await cell(page, 'team').locator('svg').count(), 0);
     });
 
+    await check('double-click immediately opens choices by default and can be disabled', async () => {
+        const toggle = page.getByRole('checkbox', { name: 'Open dropdown on double-click' });
+        assert.equal(await toggle.isChecked(), true);
+        for (const column of ['team', 'status']) {
+            await cell(page, column).dblclick();
+            const select = cell(page, column).locator('select');
+            await select.waitFor();
+            assert.equal(await select.evaluate((element) => element.matches(':open')), true);
+            await page.keyboard.press('ArrowDown');
+            await page.keyboard.press('Enter');
+            await select.waitFor({ state: 'detached' });
+        }
+        await page.getByRole('button', { name: 'Reset', exact: true }).click();
+        await toggle.uncheck();
+        await cell(page, 'team').dblclick();
+        const input = cell(page, 'team').locator('select');
+        await input.waitFor();
+        assert.equal(await input.evaluate((element) => element.matches(':open')), false);
+        await input.press('Escape');
+        await toggle.check();
+        await cell(page, 'team').click();
+        await page.keyboard.press('F2');
+        const keyboardSelect = cell(page, 'team').locator('select');
+        await keyboardSelect.waitFor();
+        assert.equal(await keyboardSelect.evaluate((element) => element.matches(':open')), false);
+        await keyboardSelect.press('Escape');
+    });
+
     await check('Team and Status dropdowns save choices and close', async () => {
         await (await edit(page, 'team')).selectOption('Design');
         await cell(page, 'team').locator('select').waitFor({ state: 'detached' });
@@ -147,14 +182,24 @@ try {
 
     await check('numeric budget editing, validation, and Escape work', async () => {
         let input = await edit(page, 'budget');
+        assert.equal(await input.inputValue(), '1,200.00');
+        assert.equal(await input.evaluate((element) => getComputedStyle(element).textAlign), 'right');
+        assert.equal(await cell(page, 'budget').locator('.demo-budget-symbol').textContent(), '€');
+        const symbolBox = await cell(page, 'budget').locator('.demo-budget-symbol').boundingBox();
+        const inputBox = await input.boundingBox();
+        assert(Math.abs(symbolBox.x + symbolBox.width - inputBox.x) <= 1, 'Euro sign must stay next to the amount');
+        await input.press('Enter');
+        assert.equal((await cell(page, 'budget').textContent()).trim(), '€1,200.00');
+        input = await edit(page, 'budget');
         await input.fill('2500.75');
         await input.press('Enter');
         await cell(page, 'budget').locator('input').waitFor({ state: 'detached' });
         assert.equal((await cell(page, 'budget').textContent()).trim(), '€2,500.75');
         input = await edit(page, 'budget');
+        assert.equal(await input.inputValue(), '2,500.75');
         await input.fill('-10');
         await input.press('Enter');
-        await input.locator('..').getByRole('alert').waitFor();
+        await cell(page, 'budget').getByRole('alert').waitFor();
         assert.equal(await input.getAttribute('aria-invalid'), 'true');
         await input.press('Escape');
         assert.equal((await cell(page, 'budget').textContent()).trim(), '€2,500.75');

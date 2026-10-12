@@ -56,8 +56,10 @@ export function createChoiceEditor<TData>(choices: readonly string[]): CellEdito
 }
 
 export function createBudgetEditor<TData>(): CellEditorComponent<TData> {
+    const amount = new Intl.NumberFormat('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     const BudgetEditor: CellEditorComponent<TData> = ({ draft, setDraft, startKey, column, error }) => {
         const input = useRef<HTMLInputElement>(null);
+        const text = typeof draft === 'number' ? amount.format(draft) : String(draft ?? '');
         useLayoutEffect(() => {
             if (startKey !== null) setDraft(startKey);
             input.current?.focus({ preventScroll: true });
@@ -66,19 +68,27 @@ export function createBudgetEditor<TData>(): CellEditorComponent<TData> {
         }, []);
 
         return (
-            <input
-                ref={input}
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                data-grid-part="editor-input"
-                aria-label={`${column.headerName} in euros`}
-                aria-invalid={Boolean(error)}
-                title={error ?? undefined}
-                value={String(draft ?? '')}
-                onChange={(event) => setDraft(event.target.value)}
-            />
+            <span className="demo-budget-editor">
+                <span className="demo-budget-symbol" aria-hidden="true">
+                    €
+                </span>
+                <span className="demo-budget-value">
+                    <span className="demo-budget-measure" aria-hidden="true">
+                        {text || '0'}
+                    </span>
+                    <input
+                        ref={input}
+                        type="text"
+                        inputMode="decimal"
+                        data-grid-part="editor-input"
+                        aria-label={`${column.headerName} in euros`}
+                        aria-invalid={Boolean(error)}
+                        title={error ?? undefined}
+                        value={text}
+                        onChange={(event) => setDraft(event.target.value.replace(/^€\s*/, ''))}
+                    />
+                </span>
+            </span>
         );
     };
 

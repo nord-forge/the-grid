@@ -46,6 +46,7 @@ description: The main Grid component's data, layout, interaction, state, renderi
 | `pasteStrategy` | `'range'` or `'rows'` |
 | `rowDrag`, `rowDragLabel` | Row drag controls and label |
 | `editOnClick` | Single-click editing |
+| `openSelectOnDoubleClick` | Immediately open inline native select pickers on double-click (default `true`, on browsers supporting `showPicker()`) |
 | `editorEscape` | `'stop'` or `'propagate'` |
 | `enterKey` | `'edit'` or `'moveDown'` |
 | `spaceTogglesSelection` | Space-key selection behavior |
