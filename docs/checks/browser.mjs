@@ -166,6 +166,15 @@ try {
         assert.equal((await trigger.textContent()).trim(), 'Auto');
         await trigger.click();
         await menu.waitFor();
+        const darkOption = picker.getByRole('menuitemradio', { name: 'Dark', exact: true });
+        await darkOption.hover();
+        assert.notEqual(
+            await darkOption.evaluate((element) => getComputedStyle(element).backgroundColor),
+            await picker
+                .getByRole('menuitemradio', { name: 'Light', exact: true })
+                .evaluate((element) => getComputedStyle(element).backgroundColor),
+            'Dark theme menu must have a visible hover background'
+        );
         assert.equal(
             await picker.getByRole('menuitemradio', { name: 'Auto', exact: true }).getAttribute('aria-checked'),
             'true'
@@ -174,6 +183,16 @@ try {
         assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
         assert.equal(await page.evaluate(() => localStorage.getItem('starlight-theme')), 'light');
         assert.equal(await trigger.evaluate((element) => element === document.activeElement), true);
+        await trigger.click();
+        await darkOption.hover();
+        assert.notEqual(
+            await darkOption.evaluate((element) => getComputedStyle(element).backgroundColor),
+            await picker
+                .getByRole('menuitemradio', { name: 'Auto', exact: true })
+                .evaluate((element) => getComputedStyle(element).backgroundColor),
+            'Light theme menu must have a visible hover background'
+        );
+        await page.keyboard.press('Escape');
         await open(page);
         assert.equal(
             (await page.locator('grid-theme-select').first().locator('.theme-trigger').textContent()).trim(),
@@ -210,6 +229,7 @@ try {
         await page.emulateMedia({ colorScheme: 'dark' });
         await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
         await trigger.click();
+        await picker.getByRole('menuitemradio', { name: 'Light', exact: true }).hover();
         await page.screenshot({ path: `${artifacts}/custom-theme-menu.png` });
         await page.locator('h1').first().click();
         assert.equal(await trigger.getAttribute('aria-expanded'), 'false');

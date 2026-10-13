@@ -51,7 +51,7 @@ h3 {
     max-width: 100%;
     font-size: clamp(2.7rem, 6vw, 4.75rem);
     line-height: 1.06;
-    letter-spacing: -0.065em;
+    letter-spacing: -0.025em;
 }
 .hero .tagline {
     max-width: 35rem;
