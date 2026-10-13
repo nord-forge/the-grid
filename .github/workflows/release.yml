@@ -41,10 +41,14 @@ jobs:
       - run: npm run format:check
       - run: npm run check:ci
       - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run docs:preview
+      - run: npm run preview --prefix docs -- --background
       - run: npm run docs:browser:all
         env:
           GRID_BROWSER_ARTIFACTS: ${{ runner.temp }}/the-grid-browser-review
+      - name: Stop docs preview
+        if: always()
+        working-directory: docs
+        run: npm exec -- astro preview stop
       - name: Publish with npm trusted publishing
         run: npm publish --access public --provenance --ignore-scripts
       - name: Upload browser evidence

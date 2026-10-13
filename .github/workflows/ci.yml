@@ -27,10 +27,14 @@ jobs:
       - run: npm run format:check
       - run: npm run check:ci
       - run: npx playwright install --with-deps chromium firefox webkit
-      - run: npm run docs:preview
+      - run: npm run preview --prefix docs -- --background
       - run: npm run docs:browser:all
         env:
           GRID_BROWSER_ARTIFACTS: ${{ runner.temp }}/the-grid-browser-review
+      - name: Stop docs preview
+        if: always()
+        working-directory: docs
+        run: npm exec -- astro preview stop
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
