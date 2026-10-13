@@ -22,7 +22,6 @@ jobs:
       id-token: write
     env:
       RELEASE_TAG: ${{ github.event.release.tag_name || format('v{0}', inputs.version) }}
-      GRID_BROWSER_ARTIFACTS: ${{ runner.temp }}/the-grid-browser-review
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -44,6 +43,8 @@ jobs:
       - run: npx playwright install --with-deps chromium firefox webkit
       - run: npm run docs:preview
       - run: npm run docs:browser:all
+        env:
+          GRID_BROWSER_ARTIFACTS: ${{ runner.temp }}/the-grid-browser-review
       - name: Publish with npm trusted publishing
         run: npm publish --access public --provenance --ignore-scripts
       - name: Upload browser evidence
