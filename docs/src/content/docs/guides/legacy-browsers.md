@@ -1,9 +1,13 @@
 ---
-title: Legacy browsers
-description: Use the opt-in compatibility bundle and theme for the 2021 browser target.
+title: Legacy browsers (beta)
+description: Use the opt-in beta compatibility bundle and theme for the 2021 browser target, with testing still underway.
 ---
 
 **Availability: unreleased.** This entry exists in the current checkout and is planned for the next npm release. The published `0.2.0` package does not include it.
+
+:::caution[Beta feature]
+The legacy build is still being tested. The browser versions below are compatibility targets; support in those historical releases has not yet been verified. Test it in your target browsers before relying on it, and [report compatibility issues](https://github.com/nord-forge/the-grid/issues).
+:::
 
 The compatibility target is **Chrome/Edge 88+, Firefox 85+, Safari 14+**. The grid API and React 19.2 peer requirements are the same as the standard build. Historical versions are not yet certified: CI tests the compiled legacy bundle in current Chromium, Firefox, and WebKit with popovers and newer JavaScript methods disabled.
 

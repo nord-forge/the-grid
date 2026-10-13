@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- Add opt-in legacy JavaScript and CSS entries targeting Chrome/Edge 88+, Firefox 85+, and Safari 14+, with generated CSS fallbacks and fixed portals only for transient UI on browsers without native popovers.
+- Add opt-in beta legacy JavaScript and CSS entries targeting Chrome/Edge 88+, Firefox 85+, and Safari 14+, with generated CSS fallbacks and fixed portals only for transient UI on browsers without native popovers. Testing is still underway; historical browser support is not yet verified.
 - Replace relational CSS selectors with public state attributes and newer JavaScript helpers with compatible equivalents.
 - Verify legacy exports and declarations in the packed consumer and run isolated browser fallback checks in CI. Historical browser versions remain unverified.
 

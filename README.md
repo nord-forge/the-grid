@@ -14,7 +14,9 @@ React 19 is a peer dependency. The package has no runtime dependencies of its ow
 
 Browser requirements for the standard theme and popup components: **Chrome/Edge 114+, Firefox 125+, Safari 17+ (iOS 17+)**. CI exercises current Chromium, Firefox, and WebKit; it does not run those historical minimum versions. See the [browser support table](https://the-grid.nickbevers.dev/reference/browser-support/).
 
-## Legacy browsers (unreleased)
+## Legacy browsers (beta, unreleased)
+
+**Beta feature:** the legacy build is still being tested. The browser versions below are compatibility targets; support in those historical releases has not yet been verified. Test it in your target browsers before relying on it, and [report compatibility issues](https://github.com/nord-forge/the-grid/issues).
 
 The current checkout includes an opt-in compatibility build targeting **Chrome/Edge 88+, Firefox 85+, Safari 14+**. It is not included in npm version 0.2.0; it will be available in the next package release. Import both the components and the theme from the legacy entry:
 
