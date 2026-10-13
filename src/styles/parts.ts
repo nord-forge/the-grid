@@ -64,7 +64,23 @@ export const GRID_PARTS = {
     'row-group-label': 'Group or tree row label.',
     'row-group-count': 'Child count of a group.',
     'fill-handle': 'The fill handle on the corner cell of a range.',
-    'editor-input': 'The default text editor input.',
+    'editor-input': 'The active editor input or select trigger.',
+    'select-editor': 'Select editor wrapper.',
+    'select-icon': 'Select editor indicator.',
+    'select-listbox': 'Select choices in a native popover.',
+    'select-option': 'One select option (data-active).',
+    'number-editor': 'Number or currency editor wrapper.',
+    'number-prefix': 'Currency prefix.',
+    'number-suffix': 'Currency suffix.',
+    'number-value': 'Numeric input and its sizing text.',
+    'number-measure': 'Invisible input sizing text.',
+    'upload-panel': 'File picker and upload activity.',
+    'upload-controls': 'File picker target and actions.',
+    'upload-input': 'Native file input.',
+    'upload-summary': 'Live upload status.',
+    'upload-list': 'Upload activity list.',
+    'upload-item': 'A file upload and its progress or error.',
+
     'editor-error': 'Validation message under an editor.',
     'overlay': 'Loading, empty or error overlay (data-overlay, data-overlay-reason).',
     'overlay-retry': 'Default retry button in the error overlay.',
@@ -81,6 +97,7 @@ export type GridPart = keyof typeof GRID_PARTS;
 
 /** State attributes, the parts they appear on, and what they mean. Values are present or absent unless noted. */
 export const GRID_STATES = {
+    'data-upload-target': 'root, row or cell: a permitted file drop target.',
     'data-density': 'root: "comfortable" or "compact".',
     'data-color-scheme': 'root: "light", "dark" or "system" (follows the operating system).',
     'data-scrolled-left': 'root: content sits under the left pinned section.',

@@ -46,7 +46,7 @@ description: The main Grid component's data, layout, interaction, state, renderi
 | `pasteStrategy` | `'range'` or `'rows'` |
 | `rowDrag`, `rowDragLabel` | Row drag controls and label |
 | `editOnClick` | Single-click editing |
-| `openSelectOnDoubleClick` | Immediately open inline native select pickers on double-click (default `true`, on browsers supporting `showPicker()`) |
+| `openSelectOnDoubleClick` | Immediately open built-in select choices on double-click (default `true`); native custom selects use browser `showPicker()` support |
 | `editorEscape` | `'stop'` or `'propagate'` |
 | `enterKey` | `'edit'` or `'moveDown'` |
 | `spaceTogglesSelection` | Space-key selection behavior |
@@ -84,6 +84,7 @@ Use `default*` for initial values. Supply a state prop and its corresponding cha
 | Prop | Purpose |
 | --- | --- |
 | `persist` | Persist optimistic write batches |
+| `uploads` | File uploads at grid, row, and cell level; application transport and validation |
 | `rangeEdit`, `propagateWrite` | Derive range and sibling writes |
 | `headerMenuButton`, `headerFilterButton` | Header controls |
 | `getContextMenuItems`, `getHeaderMenuItems` | Menu items |

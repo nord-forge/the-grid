@@ -53,6 +53,12 @@ export function People({ people }: { people: Person[] }) {
 }
 ```
 
+## Editors and uploads
+
+Use `SelectCellEditor`, `NumberCellEditor`, and `CurrencyCellEditor`, or their `create*CellEditor` factories, for reusable typed editors. Select choices open on double-click by default; numeric editors support locale formatting and validation.
+
+Supply `uploads` with your transport callback to enable cell, row, and grid attachments, picker and drop targets, validation, progress, cancellation, and `api.uploadFiles()`. The grid never provides storage or implicitly writes attachment metadata into cells. See the [editing guide](https://the-grid.nickbevers.dev/guides/editing/) and [upload guide](https://the-grid.nickbevers.dev/guides/uploads/).
+
 ## Documentation site
 
 Read the [live documentation](https://the-grid.nickbevers.dev/).

@@ -915,4 +915,143 @@
         font: inherit;
         cursor: pointer;
     }
+
+    :where([data-grid-part='root']) :where([data-grid-part='select-editor']) {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='select-editor']) :where([data-grid-part='editor-input']) {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        text-align: left;
+        cursor: pointer;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='select-icon']) {
+        display: flex;
+        flex: none;
+        width: 16px;
+        height: 16px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='select-listbox']) {
+        box-sizing: border-box;
+        padding: 4px;
+        max-width: calc(100vw - 16px);
+        overflow: auto;
+        color: var(--the-grid-menu-foreground);
+        background: var(--the-grid-menu-background);
+        border: 1px solid var(--the-grid-menu-border-color);
+        border-radius: var(--the-grid-menu-radius);
+        box-shadow: var(--the-grid-menu-shadow);
+        font: inherit;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='select-option']) {
+        display: block;
+        width: 100%;
+        border: 0;
+        padding: 6px 10px;
+        text-align: left;
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        cursor: pointer;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='select-option'][data-active]) {
+        background: var(--the-grid-editor-background);
+        outline: 1px solid var(--the-grid-accent);
+        outline-offset: -1px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='select-option']:disabled) {
+        opacity: 0.5;
+        cursor: default;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='number-editor']) {
+        display: flex;
+        align-items: center;
+        justify-content: flex-end;
+        width: 100%;
+        height: 100%;
+        padding-inline: var(--the-grid-cell-padding-x);
+        font-variant-numeric: tabular-nums;
+        white-space: pre;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='number-value']) {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        flex: 0 1 auto;
+        min-width: 1ch;
+        height: 100%;
+        overflow: hidden;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='number-measure']) {
+        grid-area: 1 / 1;
+        visibility: hidden;
+        white-space: pre;
+        overflow: hidden;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='number-value']) :where([data-grid-part='editor-input']) {
+        grid-area: 1 / 1;
+        width: 0;
+        min-width: 100%;
+        padding: 0;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+    :where([data-grid-part='root']) :where([data-upload-target]) {
+        outline: 2px dashed var(--the-grid-accent);
+        outline-offset: -2px;
+    }
+    :where([data-grid-part='root'][data-upload-target]) {
+        outline: 2px dashed var(--the-grid-accent);
+        outline-offset: -2px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='upload-panel']) {
+        flex: none;
+        padding: 8px;
+        border-bottom: 1px solid var(--the-grid-border-color);
+        font: inherit;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='upload-controls']) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='upload-controls']) :where(button, select) {
+        font: inherit;
+        color: inherit;
+        background: var(--the-grid-editor-background);
+        border: 1px solid var(--the-grid-border-color);
+        border-radius: 4px;
+        padding: 4px 8px;
+    }
+    :where([data-grid-part='root'])
+        :where([data-grid-part='upload-controls'])
+        :where(button:focus-visible, select:focus-visible) {
+        outline: 2px solid var(--the-grid-accent);
+        outline-offset: 1px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='upload-summary']) {
+        padding-top: 4px;
+        font-size: 0.9em;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='upload-list']) {
+        margin: 4px 0 0;
+        padding: 0;
+        list-style: none;
+        max-height: 100px;
+        overflow: auto;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='upload-item']) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        padding-block: 2px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='upload-item']) :where(button) {
+        font: inherit;
+    }
 }

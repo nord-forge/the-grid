@@ -1,17 +1,34 @@
-import { chromium } from 'playwright';
+import { chromium, firefox, webkit } from 'playwright';
 
 import { decodePng } from '../../playground/checks/png.mjs';
 
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
-// Playwright owns an isolated, headless Chromium profile. No personal browser is used.
+// Playwright owns isolated, headless test profiles. No personal browser is used.
 const base = process.argv.find((arg) => arg.startsWith('--url='))?.slice(6) ?? 'http://127.0.0.1:4321';
-const artifacts = '/private/tmp/the-grid-browser-review';
+const browserName = process.argv.find((arg) => arg.startsWith('--browser='))?.slice(10) ?? 'chromium';
+if (browserName === 'all') {
+    for (const name of ['chromium', 'firefox', 'webkit']) {
+        execFileSync(
+            process.execPath,
+            [
+                fileURLToPath(import.meta.url),
+                ...process.argv.slice(2).filter((arg) => !arg.startsWith('--browser=')),
+                `--browser=${name}`,
+            ],
+            { stdio: 'inherit' }
+        );
+    }
+    process.exit(0);
+}
+const artifacts = `/private/tmp/the-grid-browser-review/${browserName}`;
 mkdirSync(artifacts, { recursive: true });
 const checks = [];
 const errors = [];
-const browser = await chromium.launch({ headless: true });
+const browser = await { chromium, firefox, webkit }[browserName].launch({ headless: true });
 
 async function check(name, run) {
     await run();
@@ -23,8 +40,9 @@ const cell = (page, column, row = 'person-1') =>
     page.locator(`[data-grid-part="row"][data-row-id="${row}"] [data-grid-part="cell"][data-col-id="${column}"]`);
 async function open(page, route = 'examples/') {
     const response = await page.goto(new URL(route, `${base.replace(/\/$/, '')}/`).href);
-    assert.equal(response.status(), 200);
-    await cell(page, 'team').waitFor();
+    assert([200, 304].includes(response.status()), `Unexpected HTTP ${response.status()}`);
+    if (route === 'guides/editing/') await page.getByRole('grid', { name: 'Built-in editors example' }).waitFor();
+    else await cell(page, 'team').waitFor();
 }
 
 async function edit(page, column, row = 'person-1') {
@@ -137,7 +155,7 @@ try {
 
     await open(page);
     await check('no select indicators are rendered in display cells', async () => {
-        assert.equal(await page.locator('.demo-select-icon, .demo-choice-arrow').count(), 0);
+        assert.equal(await page.locator("[data-grid-part='select-icon'], .demo-choice-arrow").count(), 0);
         assert.equal(await cell(page, 'team').locator('svg').count(), 0);
     });
 
@@ -146,9 +164,9 @@ try {
         assert.equal(await toggle.isChecked(), true);
         for (const column of ['team', 'status']) {
             await cell(page, column).dblclick();
-            const select = cell(page, column).locator('select');
+            const select = cell(page, column).getByRole('combobox');
             await select.waitFor();
-            assert.equal(await select.evaluate((element) => element.matches(':open')), true);
+            assert.equal(await select.getAttribute('aria-expanded'), 'true');
             await page.keyboard.press('ArrowDown');
             await page.keyboard.press('Enter');
             await select.waitFor({ state: 'detached' });
@@ -156,36 +174,39 @@ try {
         await page.getByRole('button', { name: 'Reset', exact: true }).click();
         await toggle.uncheck();
         await cell(page, 'team').dblclick();
-        const input = cell(page, 'team').locator('select');
+        const input = cell(page, 'team').getByRole('combobox');
         await input.waitFor();
-        assert.equal(await input.evaluate((element) => element.matches(':open')), false);
+        assert.equal(await input.getAttribute('aria-expanded'), 'false');
         await input.press('Escape');
         await toggle.check();
         await cell(page, 'team').click();
         await page.keyboard.press('F2');
-        const keyboardSelect = cell(page, 'team').locator('select');
+        const keyboardSelect = cell(page, 'team').getByRole('combobox');
         await keyboardSelect.waitFor();
-        assert.equal(await keyboardSelect.evaluate((element) => element.matches(':open')), false);
+        assert.equal(await keyboardSelect.getAttribute('aria-expanded'), 'false');
         await keyboardSelect.press('Escape');
     });
 
     await check('Team and Status dropdowns save choices and close', async () => {
-        await (await edit(page, 'team')).selectOption('Design');
-        await cell(page, 'team').locator('select').waitFor({ state: 'detached' });
+        const teamEditor = await edit(page, 'team');
+        await teamEditor.click();
+        await page.getByRole('option', { name: 'Design', exact: true }).click();
+        await cell(page, 'team').getByRole('combobox').waitFor({ state: 'detached' });
         assert.equal((await cell(page, 'team').textContent()).trim(), 'Design');
-        await (await edit(page, 'status')).selectOption('On leave');
-        await cell(page, 'status').locator('select').waitFor({ state: 'detached' });
+        await (await edit(page, 'status')).click();
+        await page.getByRole('option', { name: 'On leave', exact: true }).click();
+        await cell(page, 'status').getByRole('combobox').waitFor({ state: 'detached' });
         assert.match(await cell(page, 'status').textContent(), /On leave/);
         assert.match(await page.locator('.demo-footer').textContent(), /2\s+changes/);
-        assert.equal(await page.locator('.demo-select-icon').count(), 0);
+        assert.equal(await page.locator("[data-grid-part='select-icon']").count(), 0);
     });
 
     await check('numeric budget editing, validation, and Escape work', async () => {
         let input = await edit(page, 'budget');
         assert.equal(await input.inputValue(), '1,200.00');
         assert.equal(await input.evaluate((element) => getComputedStyle(element).textAlign), 'right');
-        assert.equal(await cell(page, 'budget').locator('.demo-budget-symbol').textContent(), '€');
-        const symbolBox = await cell(page, 'budget').locator('.demo-budget-symbol').boundingBox();
+        assert.equal(await cell(page, 'budget').locator('[data-grid-part="number-prefix"]').textContent(), '€');
+        const symbolBox = await cell(page, 'budget').locator('[data-grid-part="number-prefix"]').boundingBox();
         const inputBox = await input.boundingBox();
         assert(Math.abs(symbolBox.x + symbolBox.width - inputBox.x) <= 1, 'Euro sign must stay next to the amount');
         await input.press('Enter');
@@ -209,14 +230,17 @@ try {
         const picker = page.locator('.demo-toolbar label').filter({ hasText: 'Select icon' }).locator('select');
         await picker.selectOption('caret');
         await edit(page, 'team');
-        assert.equal(await page.locator('[data-grid-editor] .demo-select-icon svg[fill="currentColor"]').count(), 1);
-        const box = await page.locator('.demo-select-icon svg').boundingBox();
+        assert.equal(
+            await page.locator('[data-grid-editor] [data-grid-part=\'select-icon\'] svg[fill="currentColor"]').count(),
+            1
+        );
+        const box = await page.locator("[data-grid-part='select-icon'] svg").boundingBox();
         assert(box.width >= 16 && box.height >= 16);
         await page.keyboard.press('Escape');
-        assert.equal(await page.locator('.demo-select-icon').count(), 0);
+        assert.equal(await page.locator("[data-grid-part='select-icon']").count(), 0);
         await picker.selectOption('none');
         await edit(page, 'team');
-        assert.equal(await page.locator('.demo-select-icon').count(), 0);
+        assert.equal(await page.locator("[data-grid-part='select-icon']").count(), 0);
         await page.keyboard.press('Escape');
         await picker.selectOption('chevron');
     });
@@ -235,6 +259,163 @@ try {
         await page.getByRole('button', { name: 'Reset', exact: true }).click();
         assert.equal(await page.locator('[data-row-kind="group"]').count(), 0);
         assert.match(await page.locator('.demo-footer').textContent(), /0\s+changes/);
+    });
+
+    await check('select keyboard navigation, typeahead, Tab and Escape preserve focus and values', async () => {
+        await page.getByRole('button', { name: 'Reset', exact: true }).click();
+        let trigger = await edit(page, 'team');
+        await trigger.press('Home');
+        assert.equal(await trigger.getAttribute('aria-expanded'), 'true');
+        await trigger.press('ArrowDown');
+        await trigger.press('End');
+        const active = await trigger.getAttribute('aria-activedescendant');
+        assert(active && (await page.locator(`[id="${active}"]`).getAttribute('aria-selected')) === 'true');
+        await trigger.press('Tab');
+        assert.equal((await cell(page, 'team').textContent()).trim(), 'Product');
+        assert.equal(
+            await cell(page, 'role')
+                .locator('input')
+                .evaluate((element) => element === document.activeElement),
+            true
+        );
+        await page.keyboard.press('Escape');
+        trigger = await edit(page, 'team');
+        await trigger.press('d');
+        await trigger.press('Enter');
+        assert.equal((await cell(page, 'team').textContent()).trim(), 'Design');
+        assert.equal(
+            await page
+                .getByRole('grid', { name: 'People example' })
+                .evaluate((element) => element === document.activeElement),
+            true
+        );
+        trigger = await edit(page, 'team');
+        await trigger.press('ArrowDown');
+        await trigger.press('End');
+        await trigger.press('Escape');
+        assert.equal((await cell(page, 'team').textContent()).trim(), 'Design');
+        await cell(page, 'name').click();
+        await page.keyboard.type('X');
+        const text = cell(page, 'name').locator('input');
+        await text.waitFor();
+        assert.equal(await text.inputValue(), 'X');
+        await text.press('Escape');
+        await page.getByRole('button', { name: 'Reset', exact: true }).click();
+    });
+
+    await check('file picker uploads grid, row and cell attachments with progress and errors', async () => {
+        const target = page.getByRole('combobox', { name: 'Upload target' });
+        const input = page.locator('[data-grid-part="upload-input"]');
+        const activity = (name) => page.locator('[data-grid-part="upload-item"]').filter({ hasText: name });
+        const chooserPromise = page.waitForEvent('filechooser');
+        await page.getByRole('button', { name: 'Choose files', exact: true }).click();
+        await (
+            await chooserPromise
+        ).setFiles({ name: 'grid.txt', mimeType: 'text/plain', buffer: Buffer.from('Grid attachment') });
+        await page.getByRole('progressbar', { name: 'Upload progress for grid.txt' }).waitFor();
+        await activity('grid.txt').getByText('uploaded', { exact: true }).waitFor();
+        assert.match(await activity('grid.txt').textContent(), /grid\.txt · grid/);
+        await cell(page, 'name').click();
+        await target.selectOption('row');
+        await input.setInputFiles({ name: 'row.txt', mimeType: 'text/plain', buffer: Buffer.from('Row attachment') });
+        await activity('row.txt').getByText('uploaded', { exact: true }).waitFor();
+        assert.match(await activity('row.txt').textContent(), /row person-1/);
+        await target.selectOption('cell');
+        await input.setInputFiles({ name: 'cell.txt', mimeType: 'text/plain', buffer: Buffer.from('Cell attachment') });
+        await activity('cell.txt').getByText('uploaded', { exact: true }).waitFor();
+        assert.match(await activity('cell.txt').textContent(), /cell person-1.*name/);
+        await input.setInputFiles({
+            name: 'bad.exe',
+            mimeType: 'application/octet-stream',
+            buffer: Buffer.from('bad'),
+        });
+        await activity('bad.exe').getByText('This file type is not accepted.', { exact: true }).waitFor();
+        await input.setInputFiles({ name: 'fail.txt', mimeType: 'text/plain', buffer: Buffer.from('failure') });
+        await activity('fail.txt')
+            .getByText(/Demo upload failed/)
+            .waitFor();
+        await input.setInputFiles({ name: 'cancel.txt', mimeType: 'text/plain', buffer: Buffer.from('cancel') });
+        await page.getByRole('button', { name: 'Cancel upload cancel.txt', exact: true }).click();
+        await activity('cancel.txt').getByText('cancelled', { exact: true }).waitFor();
+        await page.screenshot({ path: `${artifacts}/upload-activity.png` });
+        await page.getByRole('button', { name: 'Clear finished uploads', exact: true }).click();
+        assert.equal(await page.locator('[data-grid-part="upload-item"]').count(), 0);
+    });
+
+    await check('file drops route to the configured cell, row or grid', async () => {
+        const scope = page.locator('.demo-toolbar label').filter({ hasText: 'Drop scope' }).locator('select');
+        for (const level of ['cell', 'row', 'grid']) {
+            await scope.selectOption(level);
+            await cell(page, 'name').evaluate((element, level) => {
+                const transfer = new DataTransfer();
+                transfer.items.add(new File(['drop'], `${level}-drop.txt`, { type: 'text/plain' }));
+                element.dispatchEvent(
+                    new DragEvent('dragover', { bubbles: true, cancelable: true, dataTransfer: transfer })
+                );
+            }, level);
+            // React renders the highlight after the event; inspect it from Playwright.
+            await page.locator('[data-upload-target]').waitFor();
+            await cell(page, 'name').evaluate((element, level) => {
+                const transfer = new DataTransfer();
+                transfer.items.add(new File(['drop'], `${level}-drop.txt`, { type: 'text/plain' }));
+                element.dispatchEvent(
+                    new DragEvent('drop', { bubbles: true, cancelable: true, dataTransfer: transfer })
+                );
+            }, level);
+            const activity = page.locator('[data-grid-part="upload-item"]').filter({ hasText: `${level}-drop.txt` });
+            await activity.getByText('uploaded', { exact: true }).waitFor();
+            assert.match(await activity.textContent(), new RegExp(`${level}-drop\\.txt · ${level}`));
+            if (level === 'cell') assert.match(await activity.textContent(), /person-1.*name/);
+            if (level === 'row') assert.match(await activity.textContent(), /row person-1/);
+        }
+        await scope.selectOption('cell');
+        await page.getByRole('button', { name: 'Clear finished uploads', exact: true }).click();
+    });
+
+    await check('built-in number, locale currency and disabled numeric choices work in Strict Mode', async () => {
+        await open(page, 'guides/editing/');
+        const grid = page.getByRole('grid', { name: 'Built-in editors example', exact: true });
+        const item = (column) => grid.locator(`[data-col-id="${column}"][data-grid-part="cell"]`);
+        await item('quantity').dblclick();
+        let input = item('quantity').locator('input');
+        await input.fill('12.5');
+        await input.press('Enter');
+        await item('quantity').getByRole('alert').waitFor();
+        assert.equal(await input.getAttribute('aria-invalid'), 'true');
+        const description = await input.getAttribute('aria-describedby');
+        assert(description);
+        assert.match(await page.locator(`[id="${description}"]`).textContent(), /decimal/);
+        await input.fill('101');
+        await input.press('Enter');
+        assert.match(await item('quantity').getByRole('alert').textContent(), /100/);
+        await input.fill('15');
+        await input.press('Tab');
+        input = item('cost').locator('input');
+        await input.waitFor();
+        assert.equal(await input.inputValue(), '1.234,50');
+        assert.equal((await item('cost').locator('[data-grid-part="number-suffix"]').textContent()).trim(), '€');
+        await input.fill('2.500,75');
+        await input.press('Tab');
+        const trigger = item('tier').getByRole('combobox');
+        await trigger.waitFor();
+        await trigger.press('ArrowDown');
+        await trigger.press('End');
+        const active = await trigger.getAttribute('aria-activedescendant');
+        assert.equal(await page.locator(`[id="${active}"]`).textContent(), 'Pro');
+        assert.equal(await page.getByRole('option', { name: 'Enterprise', exact: true }).isDisabled(), true);
+        await trigger.press('Enter');
+        assert.equal((await item('tier').textContent()).trim(), 'Pro');
+        assert.equal((await item('quantity').textContent()).trim(), '15');
+        assert.equal((await item('cost').textContent()).trim(), '2.500,75 €');
+        assert.equal(await grid.evaluate((element) => element === document.activeElement), true);
+        await item('quantity').click();
+        await page.keyboard.type('50');
+        const typed = item('quantity').locator('input');
+        await typed.waitFor();
+        assert.equal(await typed.inputValue(), '50');
+        await typed.press('Escape');
+        assert.equal((await item('quantity').textContent()).trim(), '15');
+        await open(page);
     });
 
     await check('production search returns documentation results', async () => {
@@ -267,7 +448,7 @@ try {
         const mobileContext = await browser.newContext({
             viewport: { width: 320, height: 844 },
             colorScheme: 'dark',
-            isMobile: true,
+            ...(browserName === 'firefox' ? {} : { isMobile: true }),
             deviceScaleFactor: 1,
         });
         const mobile = await mobileContext.newPage();

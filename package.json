@@ -48,6 +48,7 @@
         "docs:check": "npm run check --prefix docs",
         "docs:test": "vitest run docs/checks",
         "docs:browser": "node docs/checks/browser.mjs",
+        "docs:browser:all": "node docs/checks/browser.mjs --browser=all",
         "docs:build": "npm run build --prefix docs",
         "docs:preview": "npm run preview --prefix docs",
         "tsc": "tsc --noEmit",

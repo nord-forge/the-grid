@@ -96,10 +96,14 @@ export type CellEditorProps<TData, TValue = unknown> = {
     setDraft: (value: TValue) => void;
     /** Printable key that started the edit, or null for Enter, F2, double-click or api. */
     startKey: string | null;
+    /** Open the editor's choices on entry (double-click by default, or requested through the API). */
+    openOnMount?: boolean;
     /** Ends editing. `true` validates and commits the draft; `false` discards it. */
     stop: (commit: boolean) => void;
     /** Validation message to display, set when a commit was rejected. */
     error: string | null;
+    /** ID of the host validation message, for aria-describedby. */
+    errorId?: string;
     /** Rect of the cell, for popup editors. Updates on scroll and resize. */
     anchor: AnchorRect;
     api: GridApi<TData>;

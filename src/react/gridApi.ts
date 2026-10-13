@@ -16,6 +16,7 @@ import type {
 } from '../contract';
 import { hasData } from '../contract';
 import type { GridStore } from '../grid/store';
+import type { FileUploadController } from '../grid/uploads';
 import { LocalRowModel } from '../models/localRowModel';
 import type { LaidOutColumn } from '../virtual/horizontalLayout';
 
@@ -31,6 +32,7 @@ export type GridApiDeps<TData> = {
     /** DOM measurement for autosizing; absent without a rendered grid. */
     autoSizeColumns?: (colIds?: string[]) => void;
     showColumnChooser?: (anchor?: AnchorRect) => void;
+    uploads?: FileUploadController<TData>;
 };
 
 export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
@@ -62,6 +64,15 @@ export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
     };
 
     const api: GridApi<TData> = {
+        uploadFiles: (files, target) =>
+            destroyed ? Promise.resolve([]) : (deps.uploads?.upload(files, target) ?? Promise.resolve([])),
+        getUploads: () => (destroyed ? [] : (deps.uploads?.getSnapshot() ?? [])),
+        cancelUpload: (id) => {
+            if (!destroyed) deps.uploads?.cancel(id);
+        },
+        clearUploads: () => {
+            if (!destroyed) deps.uploads?.clear();
+        },
         rows,
         geometry,
         isDestroyed: () => destroyed,
@@ -251,7 +262,7 @@ export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
         },
         startEditing: (cell, options) => {
             geometry.ensureCellVisible(cell);
-            void store.startEditing(cell, { startKey: options?.startKey ?? null });
+            void store.startEditing(cell, { startKey: options?.startKey ?? null, openOnMount: options?.openOnMount });
         },
         stopEditing: (commit) => {
             void store.stopEditing(commit, 'api');

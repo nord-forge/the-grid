@@ -5,6 +5,7 @@ description: Make cells editable, validate drafts, and persist optimistic batche
 
 import { Code } from '@astrojs/starlight/components';
 import amountEditorExample from '../../../examples/AmountEditor.tsx?raw';
+import EditorShowcase from '../../../components/EditorShowcase';
 
 ## Enable editing
 
@@ -19,7 +20,37 @@ const columns: ColumnDefinition<Person>[] = [
 
 An editable cell opens on double-click, Enter, F2, or typing. Set `editOnClick` for single-click editing. Escape cancels. `enterKey="moveDown"` changes Enter behavior outside an editor.
 
-Double-click also opens an inline native `<select>` editor's choices immediately. This is enabled by default; set `openSelectOnDoubleClick={false}` to focus the editor without opening its picker. Keyboard and API editing keep their usual behavior. The grid uses the browser's [`showPicker()` API](https://developer.mozilla.org/en-US/docs/Web/API/HTMLSelectElement/showPicker); browsers without it still focus the select for manual interaction. Custom dropdown components control their own popup behavior.
+Double-click opens built-in select choices immediately. Set `openSelectOnDoubleClick={false}` to focus the editor first. The built-in select works without native `showPicker()` support. Custom editors receive `openOnMount` so they can honor the same behavior; inline native selects use the browser's picker when available. Keyboard editing starts closed; ArrowDown, ArrowUp, Space, or typing opens the choices. Escape cancels the edit. Tab saves the highlighted choice and moves to the next editable cell.
+
+## Built-in editors
+
+Use `SelectCellEditor`, `NumberCellEditor`, or `CurrencyCellEditor` directly, or their factories for typed, reusable configuration:
+
+```tsx
+import { createSelectCellEditor, createNumberCellEditor, createCurrencyCellEditor } from '@nord-forge/the-grid';
+
+const TeamEditor = createSelectCellEditor<Person>({
+  values: ['Engineering', 'Design', 'Operations', 'Product'],
+});
+const CountEditor = createNumberCellEditor<Person>({ min: 0, maximumFractionDigits: 0 });
+const BudgetEditor = createCurrencyCellEditor<Person>({
+  locale: 'en-GB', currency: 'EUR', min: 0, maximumFractionDigits: 2,
+});
+const columns = [
+  { field: 'team', editable: true, cellEditor: TeamEditor },
+  { field: 'budget', editable: true, cellEditor: BudgetEditor },
+];
+```
+
+Select values can be strings, numbers, or `{ value, label, disabled }` objects. Number values retain their original type on commit. `cellEditorParams.values` overrides a select factory's choices per column. `icons.select` replaces the editing indicator; a factory `icon` or `cellEditorParams.icon` overrides it. Use `false` to hide it. Indicators never appear in display cells.
+
+The number and currency factories support `locale`, `min`, `max`, `minimumFractionDigits`, `maximumFractionDigits`, `useGrouping`, and `allowEmpty` (commits `null`). Currency additionally supports `currency` and `currencyDisplay`. Defaults are `en-GB` and EUR. Inputs retain right alignment and currency affixes, format numbers on entry, and accept locale-formatted copy/paste. They validate before saving and return numeric values. They do not rewrite formatting while you type, keeping caret movement predictable. Use the same locale and currency in your column's `valueFormatter`.
+
+The select uses a labeled combobox and listbox, active option announcements, arrow/Home/End navigation, and typeahead. Built-in inputs have labels and validation alerts.
+
+Try a bounded integer, a German-formatted euro amount, and a select whose values are numbers. The Enterprise choice is disabled.
+
+<EditorShowcase client:only="react" />
 
 ## Persist a batch
 
@@ -75,7 +106,7 @@ The default text editor does not infer the type of your data. Use an editor pars
 
 A custom editor receives `draft`, `setDraft`, `stop(commit)`, `error`, and its cell anchor. Its `parse` function may be async. A failed parse keeps the editor open with an error.
 
-Grid icon overrides are available through `CellEditorProps.icons`. For a custom select, use `icons.select` as its indicator, and render it only inside the editor. The [live example](/examples/#select-editor-icons) demonstrates a configurable chevron and per-column icon overrides.
+Grid icon overrides are available through `CellEditorProps.icons`. Built-in select editors use `icons.select` automatically; custom editors can use it too. The [live example](/examples/#select-editor-icons) demonstrates a configurable chevron and per-column icon overrides.
 
 Set an editor's `presentation` to `'popup'` to use the popup host. Its `keyPolicy` can customize Enter and Tab behavior.
 

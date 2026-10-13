@@ -131,10 +131,18 @@ export type GridApi<TData> = {
      * Scrolls the cell into view, mounts it and starts the editor. Does nothing for rows that are not
      * loaded, placeholder rows or non-editable cells. The editing row stays mounted until the edit ends.
      */
-    startEditing(cell: CellPosition, options?: { startKey?: string }): void;
+    startEditing(cell: CellPosition, options?: { startKey?: string; openOnMount?: boolean }): void;
     /** Ends the active edit through the same path as a user action. */
     stopEditing(commit: boolean): void;
     getEditingCell(): CellPosition | null;
+    /** Validate and upload files to a grid, loaded data row, or displayed cell. Resolves with terminal task states. */
+    uploadFiles(
+        files: readonly File[],
+        target: import('./uploads').FileUploadTarget
+    ): Promise<readonly import('./uploads').FileUploadTask[]>;
+    getUploads(): readonly import('./uploads').FileUploadTask[];
+    cancelUpload(id: string): void;
+    clearUploads(): void;
 
     // Pagination (server resource grids page at 100 rows today)
     getPagination(): {

@@ -107,3 +107,7 @@ State changes apply before events fire. Listeners see the new state through the 
 | View, page, and drag | `viewStateChanged`, `pageChanged`, `rowDragEnded` |
 
 See [GridApi](https://github.com/nord-forge/the-grid/blob/main/src/contract/api.ts), [GeometryApi](https://github.com/nord-forge/the-grid/blob/main/src/contract/geometry.ts), and [GridEventMap](https://github.com/nord-forge/the-grid/blob/main/src/contract/events.ts) for the exact typed signatures.
+
+## File uploads
+
+`uploadFiles(files, target)` validates and uploads to a grid, row, or cell target and resolves with terminal task states. `getUploads()` reads activity; `cancelUpload(id)` aborts a task; `clearUploads()` removes finished tasks. Supply the grid's `uploads` configuration first. See [file uploads](/guides/uploads/) for signatures and transport examples.

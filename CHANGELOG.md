@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Reusable select, number, and currency editors with locale parsing, validation, icon customization, and keyboard navigation.
+- Built-in select choices open on double-click across browsers without requiring native picker support.
+- Cell, row, and grid uploads with application transport, validation, progress, cancellation, permissions, and picker/drop/API entry points.
+
 ## 0.1.0
 
 First public release.

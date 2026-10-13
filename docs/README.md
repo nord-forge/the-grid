@@ -46,3 +46,5 @@ After building and starting `npm run docs:preview`, run `npm run docs:browser` f
 The Vite aliases resolve the current library source and its React peers using the docs installation. The React integration pins its compatible Vite plugin version, and the selector-parser override uses the patched release in the build toolchain.
 
 Documentation follows the 0.x source API and makes its current limits explicit. GitHub and edit links point to `nord-forge/the-grid`.
+
+To verify the live editors and uploads in isolated headless Chromium, Firefox, and WebKit, install the Playwright engines with `npx playwright install` from the repository root, build and preview the docs, then run `npm run docs:browser:all`. Pass `-- --url=https://the-grid.nickbevers.dev/` to check production. These checks use separate temporary test profiles and never access personal browser sessions.

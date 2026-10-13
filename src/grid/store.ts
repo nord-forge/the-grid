@@ -1636,7 +1636,10 @@ export class GridStore<TData> {
     // Editing
 
     /** Starts editing; synchronous unless an earlier edit has to finish an async commit first. */
-    startEditing(cell: CellPosition, options: { startKey?: string | null } = {}): boolean | Promise<boolean> {
+    startEditing(
+        cell: CellPosition,
+        options: { startKey?: string | null; openOnMount?: boolean } = {}
+    ): boolean | Promise<boolean> {
         if (!this.editing.canEdit(cell)) {
             return false;
         }

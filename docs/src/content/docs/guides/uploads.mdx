@@ -1,0 +1,75 @@
+---
+title: File uploads
+description: Attach files at cell, row, and grid level with permissions, validation, progress, and cancellation.
+---
+
+Supply `uploads` to enable the file picker, drop targets, activity list, and upload API. All three levels are enabled by default. Without `uploads`, file handling stays disabled.
+
+```tsx
+<Grid<Person>
+  data={data}
+  columns={columns}
+  uploads={{
+    targets: { grid: true, row: true, cell: true },
+    accept: '.pdf,image/*',
+    maxFileSize: 10 * 1024 * 1024,
+    maxFiles: 5,
+    concurrency: 3,
+    canUpload: (target, { row }) => target.level === 'grid' || !row?.data.locked,
+    upload: async ({ file, target, signal, reportProgress, api }) => {
+      const body = new FormData();
+      body.append('file', file);
+      body.append('target', JSON.stringify(target));
+      const response = await fetch('/api/attachments', {
+        method: 'POST', body, signal,
+      });
+      if (!response.ok) throw new Error('Could not upload this file');
+      reportProgress(100);
+      const attachment = await response.json();
+      // Store attachment metadata in your application, or use api.writeCells()
+      // if your attachment column accepts it. Nothing is written automatically.
+      return attachment;
+    },
+  }}
+/>
+```
+
+The endpoint is application code. The grid does not provide storage or send file contents anywhere until your `upload` callback runs. Browser `fetch` does not report upload byte progress; call `reportProgress(0–100)` from your transport's progress events when it supports them. Resolving marks the task uploaded, rejecting shows an error, and cancelling aborts `signal`. Your transport should honor that signal.
+
+## Targets and permissions
+
+A target is `{ level: 'grid' }`, `{ level: 'row', rowId }`, or `{ level: 'cell', rowId, colId }`.
+
+File drops choose the nearest enabled level: cell, then row, then grid. Disable cell targets to route drops on row cells to their row; disable row targets too to route everything to the grid. Dropping on the header targets the grid. A permission denial at the nearest enabled level rejects the upload; it never redirects it to a broader target.
+
+Row targets require a loaded, unpinned data row. Cell targets also require a displayed column. Group, detail, loading, failed, and pinned rows cannot receive attachments. Upload permission is independent of `editable`: use `canUpload` to restrict attachment targets, including read-only cells. Picker, drop, and API uploads run the same permission and validation checks. Queued uploads recheck target availability before starting.
+
+The picker offers **Grid**, **Focused row**, and **Focused cell**. Select a cell before choosing a row or cell target. Use keyboard navigation to focus a cell. Shift+Tab from the first grid cell returns to the upload controls.
+
+## Validation and lifecycle
+
+- `accept`: comma-separated MIME types, wildcards, or extensions; checked before transport.
+- `maxFileSize`: maximum bytes per file.
+- `maxFiles`: maximum files per batch. Files past the limit are rejected individually.
+- `multiple: false`: accept only the first file in a batch.
+- `validate(file, target)`: return an error message for application-specific rejection.
+- `concurrency`: simultaneous uploads, default 3.
+- `onChange(tasks)`: observe progress, results, and terminal states.
+
+Tasks have a stable `id`, `file`, `target`, `status`, `progress`, and optional `error` or `result`. States are `queued`, `uploading`, `uploaded`, `rejected`, `failed`, and `cancelled`. The activity panel includes cancel and clear actions; its summary announces status changes. Tasks survive row virtualization. Unmounting the grid cancels pending work. Clearing finished tasks releases the retained file references; applications can also clear them after processing metadata.
+
+## API uploads
+
+```ts
+const tasks = await api.uploadFiles(files, {
+  level: 'cell', rowId: 'person-1', colId: 'attachments',
+});
+
+const activity = api.getUploads();
+if (activity[0]) api.cancelUpload(activity[0].id);
+api.clearUploads(); // keeps queued and running tasks
+```
+
+`uploadFiles()` resolves after every file in the batch reaches a terminal state, including rejection or cancellation. It returns an empty list when the grid has been destroyed. Calls without an `uploads` transport produce rejected tasks explaining that uploads are disabled. Existing row-reordering drags are separate from file drags.
+
+The [live example](/examples/) simulates uploads locally, including progress, cancellation, errors, and all three target levels. It does not send or persist file contents. Use a filename containing `fail` to exercise an error.

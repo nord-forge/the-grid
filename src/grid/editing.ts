@@ -24,6 +24,7 @@ export type EditSession = {
     draft: unknown;
     /** The printable key that started the edit. Cleared on the first draft change, so a remount does not apply it twice. */
     startKey: string | null;
+    openOnMount: boolean;
     error: string | null;
     status: 'editing' | 'validating';
     /** Increments per edit; async results for an older edit are dropped. */
@@ -100,7 +101,10 @@ export class EditController<TData> {
      * Synchronous whenever nothing has to wait for an async commit, so the editor mounts before the next
      * key event and fast typing is never routed to the grid instead of the editor.
      */
-    start(cell: CellPosition, options: { startKey?: string | null } = {}): boolean | Promise<boolean> {
+    start(
+        cell: CellPosition,
+        options: { startKey?: string | null; openOnMount?: boolean } = {}
+    ): boolean | Promise<boolean> {
         if (this.#session) {
             if (sameCell(this.#session.cell, cell)) {
                 return true;
@@ -114,7 +118,7 @@ export class EditController<TData> {
         return this.#begin(cell, options);
     }
 
-    #begin(cell: CellPosition, options: { startKey?: string | null }): boolean {
+    #begin(cell: CellPosition, options: { startKey?: string | null; openOnMount?: boolean }): boolean {
         if (!this.canEdit(cell)) {
             return false;
         }
@@ -128,6 +132,7 @@ export class EditController<TData> {
             initialValue,
             draft: initialValue,
             startKey,
+            openOnMount: options.openOnMount ?? false,
             error: null,
             status: 'editing',
             generation: ++this.#generation,

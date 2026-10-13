@@ -30,6 +30,7 @@ import { flushSync } from 'react-dom';
 
 import type {
     AnchorRect,
+    FileUploadTarget,
     FilterCondition,
     RowHeight,
     CellEditorProps,
@@ -54,11 +55,13 @@ import { pointAnchor } from '../grid/menus';
 import { FULL_WIDTH_COLUMN, keyToNavigation, type NavigationKey } from '../grid/navigation';
 import { stickyGroupRows } from '../grid/stickyRows';
 import { GridStore, type GridStoreOptions } from '../grid/store';
+import { FileUploadController, resolveUploadTarget } from '../grid/uploads';
 import type { LaidOutColumn } from '../virtual/horizontalLayout';
 import { HeaderRows, RowCells, rowLineStyle, type CellAttributes } from './ColumnCells';
 import { DefaultColumnChooser, DefaultFilterPanel, DefaultMenu, DefaultPopup, TextCellEditor } from './defaults';
 import { DefaultFilterEditor } from './FilterEditor';
 import { createGridApi } from './gridApi';
+import { UploadPanel } from './UploadPanel';
 import { useGridGeometry } from './useGridGeometry';
 import { useHorizontalVirtualizer } from './useHorizontalVirtualizer';
 import { useVerticalVirtualizer } from './useVerticalVirtualizer';
@@ -492,10 +495,22 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
     // Set after the layout exists; the api calls through these so it can be created first.
     const autoSizeRef = useRef<(colIds?: string[]) => void>(() => undefined);
     const showChooserRef = useRef<(anchor?: AnchorRect) => void>(() => undefined);
+    const uploadApi = useRef<GridApi<TData> | null>(null);
+    const [uploads] = useState(
+        () =>
+            new FileUploadController<TData>({
+                options: () => latestProps.current.uploads,
+                api: () => uploadApi.current!,
+                resolve: (target) => resolveUploadTarget(store, target),
+            })
+    );
+    const uploadTasks = useSyncExternalStore(uploads.subscribe, uploads.getSnapshot, uploads.getSnapshot);
+    const [uploadTarget, setUploadTarget] = useState<FileUploadTarget | null>(null);
     const api = useMemo<GridApi<TData>>(
         () =>
             createGridApi<TData>({
                 store,
+                uploads,
                 geometry,
                 dataSource: () => latestProps.current.data,
                 setQuickFilter: (text) => setQuickFilter(text),
@@ -508,6 +523,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
         // The layout object is stable for the grid's life.
         [store, geometry, horizontal.layout]
     );
+    uploadApi.current = api;
     useImperativeHandle(props.apiRef, () => api, [api]);
 
     // Pinned rows from props. Each section is set only when its array changes.
@@ -574,7 +590,19 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
 
         return () => offs.forEach((off) => off());
     }, [store]);
-    useEffect(() => () => store.destroy(), [store]);
+    const lifecycle = useRef(0);
+    useEffect(() => {
+        const generation = ++lifecycle.current;
+        return () => {
+            queueMicrotask(() => {
+                // Strict Mode replays setup immediately; only the actual unmount destroys state.
+                if (lifecycle.current === generation) {
+                    uploads.destroy();
+                    store.destroy();
+                }
+            });
+        };
+    }, [store, uploads]);
 
     // firstRowsRendered: once, after the first commit that shows rows (listeners are wired above).
     const firstRowsEmitted = useRef(false);
@@ -658,9 +686,9 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
 
         return next;
     };
-    const editCell = (cell: CellPosition, startKey: string | null = null) => {
+    const editCell = (cell: CellPosition, startKey: string | null = null, openOnMount = false) => {
         reveal(cell);
-        void store.startEditing(cell, { startKey });
+        void store.startEditing(cell, { startKey, openOnMount });
     };
 
     const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
@@ -995,7 +1023,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                 editCell(hit.cell);
             } else {
                 // Mount the editor within the trusted gesture: native pickers require user activation.
-                flushSync(() => editCell(hit.cell));
+                flushSync(() => editCell(hit.cell, null, true));
                 const select = hit.element.querySelector<HTMLSelectElement>('[data-grid-editor] select');
                 if (select?.showPicker && !select.disabled && select.size <= 1 && !select.multiple) {
                     try {
@@ -1321,6 +1349,11 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
             'data-editing':
                 (editSession?.cell.rowId === row.id && editSession.cell.colId === column.colId) || undefined,
             'data-editable': editable || undefined,
+            'data-upload-target':
+                (uploadTarget?.level === 'cell' &&
+                    uploadTarget.rowId === row.id &&
+                    uploadTarget.colId === column.colId) ||
+                undefined,
             'data-hover-guard': guards
                 ? [guards.top ? 'top' : '', guards.left ? 'left' : '', guards.corner ? 'corner' : '']
                       .filter(Boolean)
@@ -1597,6 +1630,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
             'aria-selected': selectionMode !== 'none' ? selected : undefined,
             'data-grid-part': 'row',
             'data-row-kind': row.kind,
+            'data-upload-target': (uploadTarget?.level === 'row' && uploadTarget.rowId === row.id) || undefined,
             'data-first-row': index === 0 || undefined,
             'data-selected': selected || undefined,
             'data-active': store.activeRowId === row.id || undefined,
@@ -1929,10 +1963,47 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
         viewportElement.scrollLeft + viewportElement.clientWidth < viewportElement.scrollWidth - 1;
     const scrolledTop = (viewportElement?.scrollTop ?? 0) > 0;
 
+    const fileDropTarget = (target: EventTarget | null): FileUploadTarget | null => {
+        const element = target instanceof Element ? target : null;
+        const hit = closestCell(target);
+        if (hit && latestProps.current.uploads?.targets?.cell !== false) {
+            const candidate: FileUploadTarget = { level: 'cell', ...hit.cell };
+            // A denied nearest target is rejected, never silently redirected to another level.
+            return candidate;
+        }
+        const rowId = element?.closest<HTMLElement>('[data-grid-part="row"]')?.dataset.rowId;
+        if (rowId && latestProps.current.uploads?.targets?.row !== false) {
+            const candidate: FileUploadTarget = { level: 'row', rowId };
+            return candidate;
+        }
+        return { level: 'grid' };
+    };
+    const isFileDrag = (event: DragEvent) => Array.from(event.dataTransfer.types).includes('Files');
     return (
         <div
             className={props.className}
             data-grid-part="root"
+            data-upload-target={uploadTarget?.level === 'grid' || undefined}
+            onDragOverCapture={(event) => {
+                if (!props.uploads || !isFileDrag(event)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const target = fileDropTarget(event.target);
+                const allowed = target !== null && uploads.canUpload(target);
+                event.dataTransfer.dropEffect = allowed ? 'copy' : 'none';
+                setUploadTarget(allowed ? target : null);
+            }}
+            onDragLeaveCapture={(event) => {
+                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setUploadTarget(null);
+            }}
+            onDropCapture={(event) => {
+                if (!props.uploads || !isFileDrag(event)) return;
+                event.preventDefault();
+                event.stopPropagation();
+                setUploadTarget(null);
+                const target = fileDropTarget(event.target);
+                if (target) void uploads.upload(Array.from(event.dataTransfer.files), target);
+            }}
             data-density={density}
             data-color-scheme={props.colorScheme ?? 'light'}
             data-scrolled-left={scrolledLeft || undefined}
@@ -1945,6 +2016,14 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                 height: props.layout === 'content' ? undefined : '100%',
             }}
         >
+            {props.uploads && (
+                <UploadPanel
+                    controller={uploads}
+                    options={props.uploads}
+                    focused={store.focusedCell}
+                    tasks={uploadTasks}
+                />
+            )}
             <div
                 ref={scrollRef}
                 role="grid"
@@ -2407,6 +2486,7 @@ function EditorHost<TData>({
     icons,
 }: EditorHostProps<TData>) {
     const session = store.editSession!;
+    const errorId = useId();
     const Editor = (column.editor ?? TextCellEditor) as NonNullable<ResolvedColumn<TData>['editor']>;
     const policy = keyPolicyOf(column.editor);
     const presentation = column.editor?.presentation ?? 'inline';
@@ -2471,7 +2551,7 @@ function EditorHost<TData>({
     // body and commit before the click lands. Keep focus inside instead, as other browsers do.
     const onMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
         const control = (event.target as Element).closest<HTMLElement>('button, [role="option"], [role="menuitem"]');
-        if (control && event.currentTarget.contains(control) && document.activeElement !== control) {
+        if (control && event.currentTarget.contains(control)) {
             event.preventDefault();
             control.focus({ preventScroll: true });
         }
@@ -2497,8 +2577,10 @@ function EditorHost<TData>({
         draft: session.draft,
         setDraft: (value) => store.editing.setDraft(value),
         startKey: session.startKey,
+        openOnMount: session.openOnMount,
         stop: (commit) => stop(commit, 'api'),
         error: session.error,
+        errorId: session.error ? errorId : undefined,
         anchor: anchor ?? pointAnchor(0, 0),
         api,
         params: column.def.cellEditorParams ?? {},
@@ -2514,7 +2596,7 @@ function EditorHost<TData>({
         >
             <Editor {...editorProps} />
             {session.error ? (
-                <span data-grid-part="editor-error" role="alert">
+                <span id={errorId} data-grid-part="editor-error" role="alert">
                     {session.error}
                 </span>
             ) : null}

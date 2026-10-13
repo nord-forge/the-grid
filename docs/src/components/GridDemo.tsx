@@ -4,6 +4,7 @@ import '@nord-forge/the-grid/styles.css';
 
 import { demoColumns } from './demoColumns';
 import { makeRows, type Person } from './demoData';
+import { demoUpload } from './demoUploads';
 
 export default function GridDemo({ preview = false }: { preview?: boolean }) {
     const api = useRef<GridApi<Person> | null>(null);
@@ -15,6 +16,7 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
     const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
     const [selectIcon, setSelectIcon] = useState<'chevron' | 'caret' | 'none'>('chevron');
     const [openSelectOnDoubleClick, setOpenSelectOnDoubleClick] = useState(true);
+    const [dropScope, setDropScope] = useState<'cell' | 'row' | 'grid'>('cell');
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const count = preview ? 24 : 1000;
     const rows = useMemo(() => makeRows(count), [count, revision]);
@@ -101,10 +103,29 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                         Open dropdown on double-click
                     </label>
                 )}
+                {!preview && (
+                    <label className="demo-density">
+                        Drop scope{' '}
+                        <select
+                            value={dropScope}
+                            onChange={(event) => setDropScope(event.target.value as 'cell' | 'row' | 'grid')}
+                        >
+                            <option value="cell">Nearest cell</option>
+                            <option value="row">Nearest row</option>
+                            <option value="grid">Grid</option>
+                        </select>
+                    </label>
+                )}
                 <button type="button" onClick={reset}>
                     Reset
                 </button>
             </div>
+            {!preview && (
+                <p className="demo-upload-note">
+                    Uploads are simulated locally; file content is never sent. Try a file with “fail” in its name to see
+                    an error.
+                </p>
+            )}
             <div className="demo-viewport" style={{ height: preview ? 310 : 440 }}>
                 <Grid<Person>
                     key={revision}
@@ -116,6 +137,18 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                     colorScheme={theme}
                     density={density}
                     openSelectOnDoubleClick={openSelectOnDoubleClick}
+                    uploads={
+                        preview
+                            ? undefined
+                            : {
+                                  targets: { grid: true, row: dropScope !== 'grid', cell: dropScope === 'cell' },
+                                  accept: '.txt,.csv,.pdf,image/*',
+                                  maxFileSize: 2 * 1024 * 1024,
+                                  maxFiles: 5,
+                                  concurrency: 2,
+                                  upload: demoUpload,
+                              }
+                    }
                     icons={{
                         select:
                             selectIcon === 'none' ? (

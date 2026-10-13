@@ -19,6 +19,7 @@ This grid contains 1,000 generated people. It renders the rows and columns aroun
 - **Choose a team or status:** double-click a Team or Status cell to open its choices immediately. Selecting an option saves the choice. The **Open dropdown on double-click** checkbox disables automatic opening if you prefer to focus the editor first.
 - **Customize select icons:** choose Chevron, Caret, or None in the toolbar, then open a Team or Status editor. Indicators appear only while editing.
 - **Edit a budget:** double-click a Budget cell. The editor keeps the euro sign, right alignment, thousands separators, and two decimal places on entry. Type a non-negative amount with up to two decimal places. Enter or Tab saves it; Escape cancels. Sorting and filtering keep using numeric values.
+- **Upload:** choose a grid, focused row, or focused cell target in the upload panel, then choose files. Use **Drop scope** to test cell, row, and grid drops. Progress, cancellation, validation, and errors work through a local simulation; file contents are never sent or persisted. See the [upload guide](/guides/uploads/) for real transport.
 - **Ranges:** drag across cells, or use Shift with the arrow keys. Copy uses the formatted cell values.
 - **Paste and fill:** paste values into editable cells or drag the fill handle on a range. Team and Status accept their listed options; Budget accepts numbers and copied euro amounts. Invalid values are rejected without overwriting the original data.
 - **Layout:** resize a column using its header edge. The name column stays pinned while you scroll horizontally.
@@ -27,7 +28,7 @@ Changes live only in this example. **Reset** creates fresh rows and resets the g
 
 ## How it is built
 
-The example imports `Grid` from this repository's current source. It uses a local data source, typed columns, custom dropdown and numeric editors, a status renderer, and the default stylesheet with a teal accent. The change counter records successful writes.
+The example imports `Grid` from this repository's current source. It uses a local data source, typed columns, built-in select and currency editors, a status renderer, and the default stylesheet with a teal accent. The change counter records successful writes.
 
 ```tsx
 <Grid<Person>
@@ -49,7 +50,7 @@ Browse the [grid component](https://github.com/nord-forge/the-grid/blob/main/doc
 
 ## Select editor icons
 
-Supply a custom glyph through the grid's `icons.select`. Custom editors receive it through `CellEditorProps.icons`; the demo's dropdown editor renders it over the native select using CSS grid. It does not add an indicator to display cells.
+Supply a custom glyph through the grid's `icons.select`. Built-in editors use it automatically; custom editors receive it through `CellEditorProps.icons`. It does not add an indicator to display cells.
 
 ```tsx
 <Grid

@@ -24,6 +24,7 @@ import type {
 } from './renderers';
 import type { GridRow, RowId } from './rows';
 import type { CellPosition, CellRange, QueryState, RowSelection, RowSelectionMode } from './state';
+import type { FileUploadOptions } from './uploads';
 import type { PropagateWrite, WriteBatch, WriteResult } from './writes';
 
 /**
@@ -116,11 +117,13 @@ export type GridProps<TData> = {
     fillMode?: 'fill' | 'range';
     clipboard?: ClipboardHooks<TData> | false;
     rowDrag?: boolean;
+    /** File picker, drop targets and upload lifecycle. Disabled until an application supplies transport. */
+    uploads?: FileUploadOptions<TData>;
     /** Text shown while dragging rows. */
     rowDragLabel?: (rows: GridRow<TData>[]) => string;
     /** Whether a single click on an editable cell starts editing. Default false (double click, Enter, F2 or typing). */
     editOnClick?: boolean;
-    /** Open an inline native select's picker immediately on double-click. Default true; requires browser showPicker support. */
+    /** Open built-in select choices immediately on double-click. Default true. Native custom selects require browser showPicker support. */
     openSelectOnDoubleClick?: boolean;
     /**
      * Escape in an editor cancels the edit. `stop` (default) keeps the key inside the grid; `propagate` lets

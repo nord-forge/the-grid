@@ -8,5 +8,6 @@ export type * from './props';
 export type * from './renderers';
 export type * from './state';
 export type * from './writes';
+export type * from './uploads';
 export * from './rows';
 export { isColumnGroupDef } from './columns';

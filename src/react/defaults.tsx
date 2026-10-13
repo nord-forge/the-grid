@@ -19,7 +19,7 @@ import type {
 } from '../contract';
 
 /** A plain text input. A typed start key replaces the value; Enter, F2 or a double click keep it. */
-export const TextCellEditor: CellEditorComponent<unknown> = ({ draft, setDraft, startKey, error }) => {
+export const TextCellEditor: CellEditorComponent<unknown> = ({ draft, setDraft, startKey, error, errorId, column }) => {
     const inputRef = useRef<HTMLInputElement>(null);
     useLayoutEffect(() => {
         if (startKey !== null) {
@@ -38,6 +38,8 @@ export const TextCellEditor: CellEditorComponent<unknown> = ({ draft, setDraft, 
         <input
             ref={inputRef}
             data-grid-part="editor-input"
+            aria-label={column.headerName}
+            aria-describedby={errorId}
             aria-invalid={error ? true : undefined}
             title={error ?? undefined}
             value={draft === null || draft === undefined ? '' : String(draft)}

@@ -32,7 +32,7 @@ The API may change before 1.0. Pivot and value-related column fields are carried
 
 ## File uploads
 
-There is currently no built-in file upload feature at cell, row, or grid level. Applications can supply an upload control through a custom cell renderer, editor, or detail row, or wrap the grid with their own upload area. Transport, progress, file validation, and upload drop routing belong to that application integration.
+Built-in file uploads support cell, row, and grid targets, a picker, drop routing, validation, progress, cancellation, and activity states. Applications supply transport and store attachment metadata. See the [upload guide](/guides/uploads/).
 
 Existing drag-and-drop behavior handles row reordering.
 
