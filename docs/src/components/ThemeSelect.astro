@@ -1,0 +1,158 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+const label = Astro.locals.t('themeSelect.accessibleLabel');
+const choices = [
+    { value: 'dark', label: Astro.locals.t('themeSelect.dark'), icon: 'moon' as const },
+    { value: 'light', label: Astro.locals.t('themeSelect.light'), icon: 'sun' as const },
+    { value: 'auto', label: Astro.locals.t('themeSelect.auto'), icon: 'laptop' as const },
+];
+---
+
+<grid-theme-select data-label={label}>
+    <button class="theme-trigger" type="button" aria-haspopup="menu" aria-expanded="false" aria-label={label}>
+        {choices.map(choice => <span data-theme-icon={choice.value} hidden={choice.value !== 'auto'}><Icon name={choice.icon} /></span>)}
+        <span data-theme-label>{choices[2].label}</span>
+        <svg class="theme-chevron" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3.5 6 4.5 4.5L12.5 6" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+    </button>
+    <div class="theme-menu" popover="manual" role="menu" aria-label={label}>
+        {choices.map(choice => <button type="button" role="menuitemradio" aria-checked={choice.value === 'auto' ? 'true' : 'false'} data-theme={choice.value} tabindex="-1">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="m3 8 3 3 7-7" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" /></svg>
+            <span>{choice.label}</span>
+        </button>)}
+    </div>
+</grid-theme-select>
+
+{/* Match the stored label before first paint; ThemeProvider already sets the page colors. */}
+<script is:inline>
+    document.querySelectorAll('grid-theme-select').forEach(picker => {
+        let stored;
+        try { stored = localStorage.getItem('starlight-theme'); } catch {}
+        const theme = stored === 'dark' || stored === 'light' ? stored : 'auto';
+        const selected = picker.querySelector(`[data-theme="${theme}"]`);
+        picker.querySelector('[data-theme-label]').textContent = selected.querySelector('span').textContent;
+        picker.querySelectorAll('[data-theme-icon]').forEach(icon => icon.hidden = icon.dataset.themeIcon !== theme);
+        picker.querySelectorAll('[data-theme]').forEach(option => option.setAttribute('aria-checked', String(option.dataset.theme === theme)));
+    });
+</script>
+
+<script>
+    import { popupPlacement } from '../../../src/react/popupPlacement';
+    type Theme = 'dark' | 'light' | 'auto';
+    const loadTheme = (): Theme => {
+        try {
+            const stored = localStorage.getItem('starlight-theme');
+            return stored === 'dark' || stored === 'light' ? stored : 'auto';
+        } catch { return 'auto'; }
+    };
+    const system = matchMedia('(prefers-color-scheme: light)');
+
+    class GridThemeSelect extends HTMLElement {
+        private controller?: AbortController;
+        connectedCallback() {
+            const trigger = this.querySelector<HTMLButtonElement>('.theme-trigger')!;
+            const menu = this.querySelector<HTMLDivElement>('.theme-menu')!;
+            const options = [...menu.querySelectorAll<HTMLButtonElement>('[data-theme]')];
+            const controller = this.controller = new AbortController();
+            const listenerOptions = { signal: controller.signal };
+            let active = 0;
+            let search = '', lastKey = 0;
+            const isOpen = () => trigger.getAttribute('aria-expanded') === 'true';
+            const focus = (index: number) => {
+                active = (index + options.length) % options.length;
+                options[active]!.focus({ preventScroll: true });
+            };
+            const close = (restore = false) => {
+                if (!isOpen()) return;
+                menu.hidePopover();
+                trigger.setAttribute('aria-expanded', 'false');
+                if (restore) trigger.focus({ preventScroll: true });
+            };
+            const place = () => {
+                if (!isOpen()) return;
+                const rect = trigger.getBoundingClientRect();
+                const placement = popupPlacement(rect, { width: menu.offsetWidth, height: menu.scrollHeight + 2 }, { width: innerWidth, height: innerHeight });
+                Object.assign(menu.style, Object.fromEntries(Object.entries(placement).map(([key, value]) => [key, `${value}px`])));
+            };
+            const open = (edge?: 'first' | 'last') => {
+                menu.showPopover();
+                trigger.setAttribute('aria-expanded', 'true');
+                place();
+                focus(edge === 'first' ? 0 : edge === 'last' ? options.length - 1 : options.findIndex(option => option.getAttribute('aria-checked') === 'true'));
+            };
+            const apply = (theme: Theme) => {
+                document.documentElement.dataset.theme = theme === 'auto' ? system.matches ? 'light' : 'dark' : theme;
+                document.querySelectorAll('grid-theme-select').forEach(picker => {
+                    if (picker instanceof GridThemeSelect) picker.update(theme);
+                });
+            };
+            const choose = (theme: Theme) => {
+                try { localStorage.setItem('starlight-theme', theme === 'auto' ? '' : theme); } catch {}
+                apply(theme);
+                close(true);
+            };
+            apply(loadTheme());
+            trigger.addEventListener('click', () => isOpen() ? close(true) : open(), listenerOptions);
+            trigger.addEventListener('keydown', event => {
+                if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                    event.preventDefault();
+                    open(event.key === 'ArrowDown' ? 'first' : 'last');
+                }
+            }, listenerOptions);
+            options.forEach(option => option.addEventListener('click', () => choose(option.dataset.theme as Theme), listenerOptions));
+            menu.addEventListener('mousedown', event => {
+                const option = (event.target as Element).closest<HTMLButtonElement>('[data-theme]');
+                if (option) { event.preventDefault(); option.focus({ preventScroll: true }); }
+            }, listenerOptions);
+            menu.addEventListener('keydown', event => {
+                if (event.key === 'Escape') { event.preventDefault(); close(true); }
+                else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { event.preventDefault(); focus(active + (event.key === 'ArrowDown' ? 1 : -1)); }
+                else if (event.key === 'Home' || event.key === 'End') { event.preventDefault(); focus(event.key === 'Home' ? 0 : options.length - 1); }
+                else if (event.key === 'Tab') {
+                    event.preventDefault();
+                    close(true);
+                    const tabbable = [...document.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex="0"]')].filter(element => element.getClientRects().length && !element.closest('[popover]') && !element.hasAttribute('disabled'));
+                    const index = tabbable.indexOf(trigger);
+                    tabbable[index + (event.shiftKey ? -1 : 1)]?.focus();
+                } else if (event.key.length === 1 && !event.ctrlKey && !event.metaKey && event.key !== ' ') {
+                    event.preventDefault();
+                    const now = Date.now();
+                    search = now - lastKey < 700 ? search + event.key : event.key;
+                    lastKey = now;
+                    const index = options.findIndex(option => option.textContent!.trim().toLocaleLowerCase().startsWith(search.toLocaleLowerCase()));
+                    if (index >= 0) focus(index);
+                }
+            }, listenerOptions);
+            document.addEventListener('pointerdown', event => { if (!this.contains(event.target as Node)) close(); }, listenerOptions);
+            this.addEventListener('focusout', event => { if (!this.contains(event.relatedTarget as Node)) close(); }, listenerOptions);
+            window.addEventListener('resize', place, listenerOptions);
+            window.addEventListener('scroll', place, { ...listenerOptions, capture: true });
+            system.addEventListener('change', () => { if (loadTheme() === 'auto') apply('auto'); }, listenerOptions);
+            window.addEventListener('storage', event => { if (event.key === 'starlight-theme') apply(loadTheme()); }, listenerOptions);
+        }
+        disconnectedCallback() { this.controller?.abort(); }
+        update(theme: Theme) {
+            const selected = this.querySelector<HTMLButtonElement>(`[data-theme="${theme}"]`)!;
+            this.querySelector('[data-theme-label]')!.textContent = selected.querySelector('span')!.textContent;
+            this.querySelector('.theme-trigger')!.setAttribute('aria-label', `${this.dataset.label}: ${selected.textContent!.trim()}`);
+            this.querySelectorAll<HTMLElement>('[data-theme-icon]').forEach(icon => icon.hidden = icon.dataset.themeIcon !== theme);
+            this.querySelectorAll('[data-theme]').forEach(option => option.setAttribute('aria-checked', String((option as HTMLElement).dataset.theme === theme)));
+        }
+    }
+    if (!customElements.get('grid-theme-select')) customElements.define('grid-theme-select', GridThemeSelect);
+</script>
+
+<style>
+    grid-theme-select { display: block; color: var(--sl-color-gray-2); }
+    button { font: inherit; color: inherit; cursor: pointer; }
+    .theme-trigger { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border: 1px solid transparent; border-radius: 0.5rem; background: transparent; }
+    .theme-trigger:hover, .theme-trigger[aria-expanded='true'] { background: var(--sl-color-gray-6); color: var(--sl-color-text); }
+    .theme-trigger span[data-theme-icon]:not([hidden]) { display: flex; font-size: 1rem; }
+    .theme-chevron { margin-inline-start: 0.25rem; }
+    .theme-menu { margin: 0; inset: auto; box-sizing: border-box; width: 10rem; padding: 0.35rem; border: 1px solid var(--sl-color-gray-5); border-radius: 0.65rem; background: var(--sl-color-bg-nav); color: var(--sl-color-text); box-shadow: 0 12px 32px #0003; overflow: auto; }
+    .theme-menu button { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.5rem 0.6rem; border: 0; border-radius: 0.35rem; text-align: start; background: transparent; }
+    .theme-menu button svg { flex: none; visibility: hidden; }
+    .theme-menu button[aria-checked='true'] svg { visibility: visible; }
+    .theme-menu button:hover, .theme-menu button:focus-visible { background: var(--sl-color-gray-6); }
+    button:focus-visible { outline: 2px solid var(--sl-color-accent-high); outline-offset: 2px; }
+    @media (min-width: 50rem) { .theme-trigger { font-size: var(--sl-text-sm); } }
+</style>

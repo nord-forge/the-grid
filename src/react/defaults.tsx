@@ -103,6 +103,13 @@ function usePopover(onDismiss: () => void, options: { closeOnEscape: boolean }) 
 /** Default popup editor host: a popover below the cell. */
 export function DefaultPopup({ anchor, children, onDismiss }: GridPopupRenderProps) {
     const ref = usePopover(onDismiss, { closeOnEscape: false });
+    // Child layout effects run while the popover is still hidden. Focus only after showPopover,
+    // so typed entry into popup editors keeps subsequent characters inside the editor.
+    useLayoutEffect(() => {
+        ref.current
+            ?.querySelector<HTMLElement>('input, textarea, select, button, [tabindex="0"]')
+            ?.focus({ preventScroll: true });
+    }, [ref]);
 
     return (
         <div

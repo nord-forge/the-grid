@@ -19,6 +19,7 @@ export default defineConfig({
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/nord-forge/the-grid' }],
       editLink: { baseUrl: 'https://github.com/nord-forge/the-grid/edit/main/docs/' },
       customCss: ['./src/styles/site.css'],
+      components: { ThemeSelect: './src/components/ThemeSelect.astro' },
       sidebar: [
         { label: 'Start here', items: ['getting-started', 'examples'] },
         { label: 'Guides', items: [

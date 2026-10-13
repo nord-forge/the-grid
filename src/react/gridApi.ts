@@ -50,17 +50,19 @@ export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
     // Delegates to the store's current row model, so it stays right when the model changes.
     const rows: RowModel<TData> = {
         get version() {
-            return store.rowsVersion;
+            return destroyed ? 0 : store.rowsVersion;
         },
         get status() {
-            return store.rowModel.status;
+            return destroyed ? { state: 'idle' as const } : store.rowModel.status;
         },
-        getPinnedRows: (section) => store.rowModel.getPinnedRows(section),
-        getRowCount: () => store.rowModel.getRowCount(),
-        getRowAtIndex: (index) => store.rowModel.getRowAtIndex(index),
-        getRow: (id) => store.rowModel.getRow(id),
-        getIndexOf: (id) => store.rowModel.getIndexOf(id),
-        forEachRow: (callback, options) => store.rowModel.forEachRow(callback, options),
+        getPinnedRows: (section) => (destroyed ? [] : store.rowModel.getPinnedRows(section)),
+        getRowCount: () => (destroyed ? 0 : store.rowModel.getRowCount()),
+        getRowAtIndex: (index) => (destroyed ? undefined : store.rowModel.getRowAtIndex(index)),
+        getRow: (id) => (destroyed ? undefined : store.rowModel.getRow(id)),
+        getIndexOf: (id) => (destroyed ? undefined : store.rowModel.getIndexOf(id)),
+        forEachRow: (callback, options) => {
+            if (!destroyed) store.rowModel.forEachRow(callback, options);
+        },
     };
 
     const api: GridApi<TData> = {
@@ -74,7 +76,28 @@ export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
             if (!destroyed) deps.uploads?.clear();
         },
         rows,
-        geometry,
+        geometry: guardMethods(geometry, () => destroyed, {
+            getRowBounds: () => undefined,
+            getRowBoundsAtIndex: () => undefined,
+            getCellBounds: () => undefined,
+            getCellAnchor: () => undefined,
+            getRowIndexAtOffset: () => undefined,
+            hitTest: () => ({ area: 'outside' }),
+            edgeProximity: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+            getScroll: () => ({ top: 0, left: 0 }),
+            getVisibleRange: () => ({
+                firstRow: 0,
+                lastRow: -1,
+                firstMountedRow: 0,
+                lastMountedRow: -1,
+                firstColumn: 0,
+                lastColumn: -1,
+                firstMountedColumn: 0,
+                lastMountedColumn: -1,
+            }),
+            getContentSize: () => ({ width: 0, height: 0 }),
+            getViewportSize: () => ({ width: 0, height: 0 }),
+        }),
         isDestroyed: () => destroyed,
         getSourceRows: () => (destroyed ? [] : store.rowModel instanceof LocalRowModel ? store.rowModel.rows : null),
         getState: (): GridState => ({
@@ -279,5 +302,78 @@ export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
         off: (name, listener) => store.events.off(name, listener as never),
     };
 
-    return api;
+    // Every public method passes through this guard, including future mutators. No stale ref can
+    // restart work after unmount; empty read results still satisfy the public method contracts.
+    return guardMethods(api, () => destroyed, {
+        isDestroyed: () => true,
+        getSourceRows: () => [],
+        getState: () => ({
+            columnState: [],
+            columnGroupState: [],
+            query: emptyQuery(),
+            expandedRowIds: new Set(),
+            selection: { mode: 'ids', ids: new Set() },
+            activeRowId: null,
+            focusedCell: null,
+            ranges: [],
+        }),
+        getStatus: () => ({ state: 'idle' }),
+        getDataSource: () => ({ type: 'local', rows: [] }),
+        setCellValue: () => false,
+        writeCells: () => Promise.resolve({ written: 0, rejected: 0 }),
+        getColumn: () => undefined,
+        getColumns: () => [],
+        getDisplayedColumns: () => [],
+        getColumnState: () => [],
+        getColumnGroupState: () => [],
+        getRowGroupColumns: () => [],
+        getSortModel: () => [],
+        getFilterModel: () => ({}),
+        getSearch: () => '',
+        getSelection: () => ({ mode: 'ids', ids: new Set() }),
+        getSelectedRows: () => [],
+        isSelected: () => false,
+        getActiveRowId: () => null,
+        getFocusedCell: () => null,
+        moveFocus: () => null,
+        getRanges: () => [],
+        getResolvedRanges: () => [],
+        getCellValue: () => undefined,
+        getEditingCell: () => null,
+        uploadFiles: () => Promise.resolve([]),
+        getUploads: () => [],
+        getPagination: () => null,
+        whenSettled: () => Promise.resolve(),
+        on: () => () => {},
+    });
+}
+
+const emptyQuery = (): QueryState => ({
+    sortModel: [],
+    filterModel: {},
+    search: '',
+    externalFilters: {},
+    rowGroupColIds: [],
+});
+
+/** Copies methods without changing the underlying object or losing its method receiver. */
+function guardMethods<T extends object>(
+    target: T,
+    destroyed: () => boolean,
+    empty: Partial<Record<keyof T, () => unknown>> & {
+        [
+            K in keyof T as T[K] extends (...args: any[]) => any ? (ReturnType<T[K]> extends void ? never : K) : never
+        ]: T[K] extends (...args: any[]) => any ? () => ReturnType<T[K]> : never;
+    }
+): T {
+    const guarded = { ...target };
+    for (const key of Object.keys(target) as (keyof T)[]) {
+        const method = target[key];
+        if (typeof method !== 'function') continue;
+        Object.defineProperty(guarded, key, {
+            enumerable: true,
+            value: (...args: unknown[]) => (destroyed() ? empty[key]?.() : method.apply(target, args)),
+        });
+    }
+    return guarded;
 }

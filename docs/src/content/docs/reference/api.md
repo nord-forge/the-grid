@@ -21,6 +21,8 @@ const apiRef = useRef<GridApi<Person> | null>(null);
 
 Use this inside a React component. The API becomes usable at `ready`. Reads come from grid state, including offscreen data and geometry, rather than DOM elements. Calls after destruction are no-ops returning empty values; check `isDestroyed()` when needed.
 
+This also applies to retained `api.rows` and `api.geometry` handles. After destruction, row counts and geometry sizes are zero, collections are empty, missing cells return `undefined`, and statuses are `idle`. `getDataSource()` returns an empty local source and `whenSettled()` resolves immediately. Delayed callbacks can safely retain the API without restarting edits, uploads, scrolling, or data requests.
+
 ## Data and state
 
 | Method | Purpose |

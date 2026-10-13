@@ -6,6 +6,7 @@ description: Make cells editable, validate drafts, and persist optimistic batche
 import { Code } from '@astrojs/starlight/components';
 import amountEditorExample from '../../../examples/AmountEditor.tsx?raw';
 import EditorShowcase from '../../../components/EditorShowcase';
+import RegistryEditorShowcase from '../../../components/RegistryEditorShowcase';
 
 ## Enable editing
 
@@ -46,11 +47,42 @@ Select values can be strings, numbers, or `{ value, label, disabled }` objects. 
 
 The number and currency factories support `locale`, `min`, `max`, `minimumFractionDigits`, `maximumFractionDigits`, `useGrouping`, and `allowEmpty` (commits `null`). Currency additionally supports `currency` and `currencyDisplay`. Defaults are `en-GB` and EUR. Inputs retain right alignment and currency affixes, format numbers on entry, and accept locale-formatted copy/paste. They validate before saving and return numeric values. They do not rewrite formatting while you type, keeping caret movement predictable. Use the same locale and currency in your column's `valueFormatter`.
 
+Unchanged numeric values retain their exact value, even when display formatting rounds them. Entered text validates the configured precision and bounds. Scientific notation and negative currency amounts are supported.
+
 The select uses a labeled combobox and listbox, active option announcements, arrow/Home/End navigation, and typeahead. Built-in inputs have labels and validation alerts.
 
 Try a bounded integer, a German-formatted euro amount, and a select whose values are numbers. The Enterprise choice is disabled.
 
 <EditorShowcase client:only="react" />
+
+## Named editors and data types
+
+Named editors work without an application registry. Configure them with `cellEditorParams`:
+
+```tsx
+const columns: ColumnDefinition<Person>[] = [
+  { field: 'name', editable: true, cellEditor: 'textEditor' },
+  { field: 'team', editable: true, cellEditor: 'selectEditor', cellEditorParams: { values: ['Design', 'Engineering'] } },
+  { field: 'budget', editable: true, cellEditor: 'currencyEditor', cellEditorParams: { locale: 'de-DE', currency: 'EUR', min: 0 } },
+];
+```
+
+| Editor key | Component | Saved value |
+| --- | --- | --- |
+| `textEditor` | `TextCellEditor` | Text |
+| `largeTextEditor` | `LargeTextCellEditor` | Multiline text; Enter inserts a newline, Tab saves |
+| `numberEditor` | Configurable number editor | Number |
+| `currencyEditor` | Configurable currency editor | Number |
+| `selectEditor`, `richSelectEditor` | `SelectCellEditor` | Selected string or number; both keys use the same select |
+| `checkboxEditor` | `CheckboxCellEditor` | Boolean |
+| `dateEditor` | `DateCellEditor` | `Date` |
+| `dateStringEditor` | `DateStringCellEditor` | `YYYY-MM-DD` string |
+
+The built-in `text`, `number`, `boolean`, `date`, and `dateString` data types choose their corresponding editors when `cellEditor` is omitted. Explicit editors and application registry overrides take precedence. These types are opt-in; a plain editable column still uses the text editor.
+
+Date editors use UTC calendar days and support `cellEditorParams.min` and `max` as `YYYY-MM-DD` strings. Clearing a date saves `null`; set `allowEmpty: false` to require a value. Opening and accepting an unchanged `Date` preserves its time. Try the date, boolean, and multiline defaults below:
+
+<RegistryEditorShowcase client:only="react" />
 
 ## Persist a batch
 

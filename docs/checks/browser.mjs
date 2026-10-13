@@ -41,6 +41,9 @@ const cell = (page, column, row = 'person-1') =>
 async function open(page, route = 'examples/') {
     const response = await page.goto(new URL(route, `${base.replace(/\/$/, '')}/`).href);
     assert([200, 304].includes(response.status()), `Unexpected HTTP ${response.status()}`);
+    // Starlight initializes search during an idle callback after load. Let that import finish before
+    // a test navigates again, so navigation cannot cancel it and produce a teardown rejection.
+    await page.locator('site-search .pagefind-ui__search-input').waitFor({ state: 'attached' });
     if (route === 'guides/editing/') await page.getByRole('grid', { name: 'Built-in editors example' }).waitFor();
     else await cell(page, 'team').waitFor();
 }
@@ -146,7 +149,71 @@ try {
         deviceScaleFactor: 2,
     });
     const page = await context.newPage();
-    page.on('pageerror', (error) => errors.push(error.message));
+    page.on('pageerror', (error) => {
+        errors.push(error.message);
+        console.error(`Page error on ${page.url()}: ${error.message}`);
+    });
+    page.on('requestfailed', (request) =>
+        console.error(`Request failed on ${page.url()}: ${request.url()} ${request.failure()?.errorText}`)
+    );
+
+    await check('custom theme menu saves choices, supports keyboard navigation and follows the system', async () => {
+        await open(page, '');
+        const picker = page.locator('grid-theme-select').first();
+        const trigger = picker.locator('.theme-trigger');
+        const menu = picker.getByRole('menu');
+        assert.equal(await picker.locator('select').count(), 0);
+        assert.equal((await trigger.textContent()).trim(), 'Auto');
+        await trigger.click();
+        await menu.waitFor();
+        assert.equal(
+            await picker.getByRole('menuitemradio', { name: 'Auto', exact: true }).getAttribute('aria-checked'),
+            'true'
+        );
+        await picker.getByRole('menuitemradio', { name: 'Light', exact: true }).click();
+        assert.equal(await page.locator('html').getAttribute('data-theme'), 'light');
+        assert.equal(await page.evaluate(() => localStorage.getItem('starlight-theme')), 'light');
+        assert.equal(await trigger.evaluate((element) => element === document.activeElement), true);
+        await open(page);
+        assert.equal(
+            (await page.locator('grid-theme-select').first().locator('.theme-trigger').textContent()).trim(),
+            'Light'
+        );
+        await trigger.press('ArrowDown');
+        await page.keyboard.press('End');
+        await page.keyboard.press('Enter');
+        assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
+        assert.equal(await page.evaluate(() => localStorage.getItem('starlight-theme')), '');
+        await page.emulateMedia({ colorScheme: 'light' });
+        await page.waitForFunction(() => document.documentElement.dataset.theme === 'light');
+        await trigger.click();
+        await page.keyboard.press('Home');
+        await page.keyboard.press('Enter');
+        assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
+        await trigger.click();
+        await page.keyboard.press('l');
+        assert.equal(
+            await picker
+                .getByRole('menuitemradio', { name: 'Light', exact: true })
+                .evaluate((element) => element === document.activeElement),
+            true
+        );
+        await page.keyboard.press('Escape');
+        assert.equal(await page.locator('html').getAttribute('data-theme'), 'dark');
+        assert.equal(await trigger.evaluate((element) => element === document.activeElement), true);
+        await trigger.click();
+        await page.keyboard.press('Tab');
+        assert.equal(await trigger.getAttribute('aria-expanded'), 'false');
+        assert.equal(await menu.isVisible(), false);
+        await trigger.click();
+        await picker.getByRole('menuitemradio', { name: 'Auto', exact: true }).click();
+        await page.emulateMedia({ colorScheme: 'dark' });
+        await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+        await trigger.click();
+        await page.screenshot({ path: `${artifacts}/custom-theme-menu.png` });
+        await page.locator('h1').first().click();
+        assert.equal(await trigger.getAttribute('aria-expanded'), 'false');
+    });
 
     await check('desktop title is one line at the supplied width', async () => {
         await open(page, '');
@@ -408,6 +475,45 @@ try {
         await page.getByRole('button', { name: 'Reset', exact: true }).click();
     });
 
+    await check('typeahead includes the key that starts editing', async () => {
+        await cell(page, 'team').click();
+        await page.keyboard.type('De');
+        const trigger = cell(page, 'team').getByRole('combobox');
+        const active = await trigger.getAttribute('aria-activedescendant');
+        assert.equal(await page.locator(`[id="${active}"]`).textContent(), 'Design');
+        await trigger.press('Enter');
+        assert.equal((await cell(page, 'team').textContent()).trim(), 'Design');
+        await page.getByRole('button', { name: 'Reset', exact: true }).click();
+    });
+
+    await check('dropdown flips above cells near the viewport bottom and stays inside its edges', async () => {
+        await page.setViewportSize({ width: 800, height: 480 });
+        const target = cell(page, 'team');
+        await target.scrollIntoViewIfNeeded();
+        await target.evaluate((element) =>
+            window.scrollBy(0, element.getBoundingClientRect().bottom - (window.innerHeight - 12))
+        );
+        await target.dblclick();
+        const popup = page.getByRole('listbox', { name: 'Team', exact: true });
+        await popup.waitFor();
+        const rect = await popup.boundingBox(),
+            anchor = await target.boundingBox();
+        assert(rect.y + rect.height <= anchor.y + 1, 'Popup must flip above its anchor');
+        assert(
+            rect.x >= 7 && rect.y >= 7 && rect.x + rect.width <= 793 && rect.y + rect.height <= 473,
+            'Popup must fit the viewport'
+        );
+        await page.screenshot({ path: `${artifacts}/dropdown-above.png` });
+        await page.setViewportSize({ width: 700, height: 400 });
+        const resized = await popup.boundingBox();
+        assert(
+            resized.x >= 7 && resized.y >= 7 && resized.x + resized.width <= 693 && resized.y + resized.height <= 393,
+            'Popup must stay within a resized viewport'
+        );
+        await page.keyboard.press('Escape');
+        await page.setViewportSize({ width: 1890, height: 1100 });
+    });
+
     await check('file picker uploads grid, row and cell attachments with progress and errors', async () => {
         await open(page, 'guides/uploads/');
         const target = page.getByRole('combobox', { name: 'Upload target' });
@@ -483,6 +589,10 @@ try {
         await open(page, 'guides/editing/');
         const grid = page.getByRole('grid', { name: 'Built-in editors example', exact: true });
         const item = (column) => grid.locator(`[data-col-id="${column}"][data-grid-part="cell"]`);
+        await item('cost').dblclick();
+        await item('cost').locator('input').press('Enter');
+        assert.equal(await item('cost').locator('input').count(), 0, 'Unchanged German currency must commit');
+        assert.match(await item('cost').textContent(), /1\.234,50/);
         await item('quantity').dblclick();
         let input = item('quantity').locator('input');
         await input.fill('12.5');
@@ -522,6 +632,46 @@ try {
         assert.equal(await typed.inputValue(), '50');
         await typed.press('Escape');
         assert.equal((await item('quantity').textContent()).trim(), '15');
+        await open(page);
+    });
+
+    await check('named date, date-string, checkbox and multiline editors render and commit', async () => {
+        await open(page, 'guides/editing/');
+        const grid = page.getByRole('grid', { name: 'Registry editors example', exact: true });
+        const item = (column) => grid.locator(`[data-grid-part="cell"][data-col-id="${column}"]`);
+        await item('enabled').dblclick();
+        await item('enabled').getByRole('checkbox', { name: 'Enabled' }).check();
+        await page.keyboard.press('Enter');
+        assert.equal((await item('enabled').textContent()).trim(), 'true');
+        await item('enabled').dblclick();
+        await item('enabled').getByRole('checkbox', { name: 'Enabled' }).press('Space');
+        await page.keyboard.press('Escape');
+        assert.equal((await item('enabled').textContent()).trim(), 'true');
+        for (const column of ['due', 'deadline']) {
+            await item(column).dblclick();
+            const input = item(column).locator('input[type="date"]');
+            await input.fill('2026-11-25');
+            await input.press('Enter');
+            assert.equal((await item(column).textContent()).trim(), '2026-11-25');
+        }
+        await item('notes').click();
+        await page.keyboard.type('Ab');
+        assert.equal(await page.getByRole('textbox', { name: 'Notes', exact: true }).inputValue(), 'Ab');
+        await page.keyboard.press('Escape');
+        await item('notes').dblclick();
+        const textarea = page.getByRole('textbox', { name: 'Notes', exact: true });
+        await textarea.fill('First line');
+        await textarea.press('End');
+        await textarea.press('Enter');
+        await textarea.pressSequentially('Second line');
+        assert.equal(await textarea.inputValue(), 'First line\nSecond line');
+        await textarea.press('Tab');
+        assert.equal((await item('notes').textContent()).trim(), 'First line\nSecond line');
+        await item('notes').dblclick();
+        await page.getByRole('textbox', { name: 'Notes', exact: true }).fill('Discard this');
+        await page.keyboard.press('Escape');
+        assert.equal((await item('notes').textContent()).trim(), 'First line\nSecond line');
+        await grid.screenshot({ path: `${artifacts}/registry-editors.png` });
         await open(page);
     });
 
@@ -587,6 +737,17 @@ try {
         assert(exampleLayout.scroll <= exampleLayout.width + 1, 'Mobile settings must not overflow the page');
         await settings(mobile, false);
         await mobile.locator('.grid-demo').screenshot({ path: `${artifacts}/mobile-demo.png` });
+        await mobile.locator('button[popovertarget="starlight__sidebar"]').click();
+        const theme = mobile.locator('grid-theme-select .theme-trigger:visible');
+        await theme.click();
+        const menu = mobile.getByRole('menu', { name: 'Select theme', exact: true });
+        const rect = await menu.boundingBox();
+        assert(
+            rect.x >= 7 && rect.x + rect.width <= 313 && rect.y >= 7 && rect.y + rect.height <= 837,
+            'Mobile theme menu must fit the screen'
+        );
+        await menu.getByRole('menuitemradio', { name: 'Light', exact: true }).click();
+        assert.equal(await mobile.locator('html').getAttribute('data-theme'), 'light');
         await mobileContext.close();
     });
     assert.deepEqual(errors, [], 'Browser runtime errors');

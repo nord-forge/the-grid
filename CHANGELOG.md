@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- Preserve unchanged numeric values across locales and accept scientific notation and pasted negative currency amounts.
+- Make retained API, row, and geometry handles safe after grid destruction.
+- Replace named editor placeholders with working text, multiline, select, number, currency, checkbox, and date editors; preserve application overrides.
+- Keep select dropdowns inside the viewport and preserve typeahead when typing starts an edit.
+- Replace the docs' native theme select with a styled, keyboard-accessible menu that preserves saved and system theme preferences.
+
 - Center header and row selection checkboxes and expose full default cell, column, and group labels through native hover titles.
 
 - Reusable select, number, and currency editors with locale parsing, validation, icon customization, and keyboard navigation.

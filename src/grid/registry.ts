@@ -16,12 +16,13 @@ import type {
     ColumnDefinition,
     ColumnGroupDef,
     DataTypeDefinition,
-    EditorKeyPolicy,
-    EditorPresentation,
     GridRegistry,
     UnresolvedRegistryKey,
 } from '../contract';
 import { isColumnGroupDef } from '../contract';
+import { LargeTextCellEditor, DateCellEditor, DateStringCellEditor, CheckboxCellEditor } from '../react/basicEditors';
+import { TextCellEditor } from '../react/defaults';
+import { SelectCellEditor, configuredNumericEditor } from '../react/editors';
 
 /** One kind of registry entry, such as `renderers` or `valueGetters`. */
 export type RegistryKind = keyof GridRegistry;
@@ -233,7 +234,7 @@ function registryKeyMessage(
 
 const placeholders = new WeakSet<object>();
 
-/** True for the placeholder components `BUILTIN_REGISTRY` holds until the real UI replaces them. */
+/** True for the renderer placeholders `BUILTIN_REGISTRY` holds until the application replaces them. */
 export function isBuiltinPlaceholder(component: unknown): boolean {
     return (
         (typeof component === 'function' || typeof component === 'object') &&
@@ -246,19 +247,6 @@ function placeholderRenderer(name: string): CellRendererComponent<any> {
     const component: CellRendererComponent<any> = () => null;
 
     component.displayName = `Builtin(${name})`;
-    placeholders.add(component);
-
-    return component;
-}
-
-function placeholderEditor(
-    name: string,
-    presentation: EditorPresentation,
-    keyPolicy: Partial<EditorKeyPolicy> = {}
-): CellEditorComponent<any> {
-    const component: CellEditorComponent<any> = Object.assign(() => null, { presentation, keyPolicy });
-
-    (component as ComponentType).displayName = `Builtin(${name})`;
     placeholders.add(component);
 
     return component;
@@ -299,17 +287,15 @@ function plainText(value: unknown): string {
 }
 
 const builtinEditors = {
-    textEditor: placeholderEditor('textEditor', 'inline'),
-    largeTextEditor: placeholderEditor('largeTextEditor', 'popup', {
-        enter: 'newline',
-        arrowsNavigateGrid: false,
-    }),
-    numberEditor: placeholderEditor('numberEditor', 'inline'),
-    selectEditor: placeholderEditor('selectEditor', 'popup', { arrowsNavigateGrid: false }),
-    richSelectEditor: placeholderEditor('richSelectEditor', 'popup', { arrowsNavigateGrid: false }),
-    dateEditor: placeholderEditor('dateEditor', 'popup'),
-    dateStringEditor: placeholderEditor('dateStringEditor', 'popup'),
-    checkboxEditor: placeholderEditor('checkboxEditor', 'inline'),
+    textEditor: TextCellEditor,
+    largeTextEditor: LargeTextCellEditor,
+    numberEditor: configuredNumericEditor(),
+    currencyEditor: configuredNumericEditor(true),
+    selectEditor: SelectCellEditor,
+    richSelectEditor: SelectCellEditor,
+    dateEditor: DateCellEditor,
+    dateStringEditor: DateStringCellEditor,
+    checkboxEditor: CheckboxCellEditor,
 } satisfies Record<string, CellEditorComponent<any>>;
 
 const builtinDataTypes = {
@@ -358,7 +344,7 @@ const builtinDataTypes = {
 } satisfies Record<string, DataTypeDefinition<any>>;
 
 /**
- * Built-in renderers, editors and data types, as placeholders an application replaces with its own
+ * Built-in editors and data types, plus renderer placeholders an application replaces with its own
  * components. Merge it first; the app registry and screen registries override it (an app's own `date`
  * data type replaces the built-in one). An application that receives other names from its backend maps
  * them onto these in its own registry.
@@ -572,6 +558,11 @@ function resolveLeaf<TData>(
 
     if (dataType) {
         applyDataTypeDefaults(column, dataType);
+        // Built-in type defaults honor an application's named-editor override too.
+        if (definition.cellEditor === undefined) {
+            const entry = Object.entries(builtinEditors).find(([, editor]) => editor === dataType.editor);
+            if (entry) column.cellEditor = find('editors', entry[0]) ?? dataType.editor;
+        }
     }
 
     if (readOnly) {

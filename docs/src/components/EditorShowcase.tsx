@@ -1,10 +1,4 @@
-import {
-    Grid,
-    createNumberCellEditor,
-    createCurrencyCellEditor,
-    createSelectCellEditor,
-    type ColumnDefinition,
-} from '@nord-forge/the-grid';
+import { Grid, createCurrencyCellEditor, type ColumnDefinition } from '@nord-forge/the-grid';
 import { StrictMode, useMemo } from 'react';
 import '@nord-forge/the-grid/styles.css';
 
@@ -15,7 +9,8 @@ const columns: ColumnDefinition<Invoice>[] = [
         headerName: 'Quantity',
         width: 130,
         editable: true,
-        cellEditor: createNumberCellEditor<Invoice>({ min: 0, max: 100, maximumFractionDigits: 0 }),
+        cellEditor: 'numberEditor',
+        cellEditorParams: { min: 0, max: 100, maximumFractionDigits: 0 },
     },
     {
         field: 'cost',
@@ -31,13 +26,14 @@ const columns: ColumnDefinition<Invoice>[] = [
         headerName: 'Plan',
         width: 150,
         editable: true,
-        cellEditor: createSelectCellEditor<Invoice>({
+        cellEditor: 'selectEditor',
+        cellEditorParams: {
             values: [
                 { value: 1, label: 'Basic' },
                 { value: 2, label: 'Pro' },
                 { value: 3, label: 'Enterprise', disabled: true },
             ],
-        }),
+        },
         valueFormatter: ({ value }) => (value === 1 ? 'Basic' : value === 2 ? 'Pro' : 'Enterprise'),
     },
 ];
@@ -53,7 +49,13 @@ export default function EditorShowcase() {
     return (
         <div style={{ height: 180 }}>
             <StrictMode>
-                <Grid data={data} columns={columns} ariaLabel="Built-in editors example" interaction="cell" />
+                <Grid
+                    className="docs-grid"
+                    data={data}
+                    columns={columns}
+                    ariaLabel="Built-in editors example"
+                    interaction="cell"
+                />
             </StrictMode>
         </div>
     );

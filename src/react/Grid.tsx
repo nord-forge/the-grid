@@ -2562,7 +2562,9 @@ function EditorHost<TData>({
     // Safari does not focus a clicked button, so a click inside a popup editor would blur the editor to the
     // body and commit before the click lands. Keep focus inside instead, as other browsers do.
     const onMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
-        const control = (event.target as Element).closest<HTMLElement>('button, [role="option"], [role="menuitem"]');
+        const control = (event.target as Element).closest<HTMLElement>(
+            'button, input[type="checkbox"], input[type="radio"], [role="option"], [role="menuitem"]'
+        );
         if (control && event.currentTarget.contains(control)) {
             event.preventDefault();
             control.focus({ preventScroll: true });

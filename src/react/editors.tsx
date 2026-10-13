@@ -1,6 +1,7 @@
-import { useId, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 
 import type { CellEditorComponent } from '../contract';
+import { popupPlacement } from './popupPlacement';
 
 export type SelectEditorOption = string | number | { value: string | number; label: string; disabled?: boolean };
 export type SelectEditorOptions = { values?: readonly SelectEditorOption[]; icon?: ReactNode };
@@ -82,7 +83,10 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
         }
         useLayoutEffect(() => {
             trigger.current?.focus({ preventScroll: true });
-            if (startKey) find(startKey);
+            if (startKey) {
+                search.current = { text: startKey, time: Date.now() };
+                find(startKey);
+            }
         }, []);
         useLayoutEffect(() => {
             const element = popup.current;
@@ -98,6 +102,27 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
                 if (element.isConnected && element.matches(':popover-open')) element.hidePopover();
             };
         }, [open]);
+        useLayoutEffect(() => {
+            const element = popup.current;
+            if (!open || !element) return;
+            const place = () => {
+                const placement = popupPlacement(
+                    anchor,
+                    {
+                        width: element.getBoundingClientRect().width,
+                        height: element.scrollHeight + element.offsetHeight - element.clientHeight,
+                    },
+                    { width: window.innerWidth, height: window.innerHeight }
+                );
+                Object.assign(
+                    element.style,
+                    Object.fromEntries(Object.entries(placement).map(([key, value]) => [key, `${value}px`]))
+                );
+            };
+            place();
+            window.addEventListener('resize', place);
+            return () => window.removeEventListener('resize', place);
+        }, [open, anchor.left, anchor.top, anchor.width, anchor.height, choices.length]);
         useLayoutEffect(() => {
             if (open)
                 popup.current
@@ -188,20 +213,16 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
                         style={{
                             margin: 0,
                             inset: 'auto',
-                            left: Math.max(
-                                0,
-                                Math.min(
-                                    anchor.left,
-                                    (typeof window === 'undefined' ? anchor.left + anchor.width : window.innerWidth) -
-                                        anchor.width
-                                )
-                            ),
-                            top: anchor.top + anchor.height,
-                            minWidth: anchor.width,
-                            maxHeight:
+                            ...popupPlacement(
+                                anchor,
+                                { width: anchor.width, height: Math.min(240, choices.length * 36 + 10) },
                                 typeof window === 'undefined'
-                                    ? 240
-                                    : Math.max(80, Math.min(240, window.innerHeight - anchor.top - anchor.height - 8)),
+                                    ? {
+                                          width: anchor.left + anchor.width + 8,
+                                          height: anchor.top + anchor.height + 248,
+                                      }
+                                    : { width: window.innerWidth, height: window.innerHeight }
+                            ),
                         }}
                     >
                         {choices.map((choice, index) => (
@@ -229,6 +250,7 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
             </span>
         );
     };
+    Editor.keyPolicy = { arrowsNavigateGrid: false };
     Editor.parse = (draft, { column }) => {
         const choices = normalizeChoices(
             (column.def.cellEditorParams?.values as readonly SelectEditorOption[] | undefined) ?? options.values ?? []
@@ -333,13 +355,38 @@ function numericEditor<TData>(options: CurrencyEditorOptions, currency: boolean)
         );
     };
     Editor.parse = (draft) => {
+        const validate = (value: number) => {
+            if (!Number.isFinite(value)) return { ok: false as const, error: 'Enter a finite number.' };
+            if (options.min !== undefined && value < options.min)
+                return {
+                    ok: false as const,
+                    error: options.min === 0 ? 'Enter a non-negative amount.' : `Enter at least ${options.min}.`,
+                };
+            if (options.max !== undefined && value > options.max)
+                return { ok: false as const, error: `Enter no more than ${options.max}.` };
+            return { ok: true as const, value };
+        };
+        // Initial drafts are already numbers. Preserve them without locale conversion or display rounding.
+        if (typeof draft === 'number') return validate(draft);
         if (String(draft ?? '').trim() === '' && options.allowEmpty) return { ok: true, value: null };
-        let text = String(draft ?? '').trim();
-        if (prefix.trim() && text.startsWith(prefix.trim())) text = text.slice(prefix.trim().length).trim();
-        if (suffix.trim() && text.endsWith(suffix.trim())) text = text.slice(0, -suffix.trim().length).trim();
-        text = toLatin(text);
+        let text = toLatin(String(draft ?? '')).trim();
+        let sign = '';
+        if (/^[+-]/.test(text)) {
+            sign = text[0]!;
+            text = text.slice(1).trim();
+        }
+        const leading = toLatin(prefix).trim(),
+            trailing = toLatin(suffix).trim();
+        if (leading && text.startsWith(leading)) text = text.slice(leading.length).trim();
+        if (trailing && text.endsWith(trailing)) text = text.slice(0, -trailing.length).trim();
+        text = sign + text;
+        const exponentParts = text.split(/[eE]/);
+        if (exponentParts.length > 2 || (exponentParts.length === 2 && !/^[+-]?\d+$/.test(exponentParts[1]!)))
+            return { ok: false, error: 'Enter a valid number.' };
+        text = exponentParts[0]!;
         const segments = text.split(decimal);
-        if (segments.length > 2 || (segments[1]?.length ?? 0) > resolved.maximumFractionDigits!)
+        const precision = Math.max(0, (segments[1]?.length ?? 0) - Number(exponentParts[1] ?? 0));
+        if (segments.length > 2 || precision > resolved.maximumFractionDigits!)
             return { ok: false, error: `Enter an amount with up to ${resolved.maximumFractionDigits} decimal places.` };
         const whole = segments[0]!;
         const ungrouped = whole.split(group).join('');
@@ -347,16 +394,7 @@ function numericEditor<TData>(options: CurrencyEditorOptions, currency: boolean)
             return { ok: false, error: 'Enter a valid number.' };
         const normalized = ungrouped + (segments.length === 2 ? '.' + segments[1] : '');
         if (!/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)$/.test(normalized)) return { ok: false, error: 'Enter a valid number.' };
-        const value = Number(normalized);
-        if (!Number.isFinite(value)) return { ok: false, error: 'Enter a finite number.' };
-        if (options.min !== undefined && value < options.min)
-            return {
-                ok: false,
-                error: options.min === 0 ? 'Enter a non-negative amount.' : `Enter at least ${options.min}.`,
-            };
-        if (options.max !== undefined && value > options.max)
-            return { ok: false, error: `Enter no more than ${options.max}.` };
-        return { ok: true, value };
+        return validate(Number(normalized + (exponentParts.length === 2 ? `e${exponentParts[1]}` : '')));
     };
     return Editor;
 }
@@ -369,3 +407,28 @@ export function createCurrencyCellEditor<TData = any>(options: CurrencyEditorOpt
 export const SelectCellEditor = createSelectCellEditor();
 export const NumberCellEditor = createNumberCellEditor();
 export const CurrencyCellEditor = createCurrencyCellEditor();
+
+/** Registry editors configure each mounted editor and its parser from cellEditorParams. */
+export function configuredNumericEditor(currency = false): CellEditorComponent<any> {
+    const Editor: CellEditorComponent<any> = (props) => {
+        const options = props.params as CurrencyEditorOptions;
+        const Configured = useMemo(
+            () => numericEditor(options, currency),
+            [
+                options.locale,
+                options.currency,
+                options.currencyDisplay,
+                options.min,
+                options.max,
+                options.minimumFractionDigits,
+                options.maximumFractionDigits,
+                options.useGrouping,
+                options.allowEmpty,
+            ]
+        );
+        return <Configured {...props} />;
+    };
+    Editor.parse = (draft, context) =>
+        numericEditor(context.column.def.cellEditorParams ?? {}, currency).parse!(draft, context);
+    return Editor;
+}

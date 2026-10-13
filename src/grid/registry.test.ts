@@ -383,10 +383,11 @@ describe('BUILTIN_REGISTRY', () => {
         );
     });
 
-    it('marks its components as placeholders with editor policies', () => {
+    it('provides working editors with policies and keeps only renderer placeholders', () => {
         const largeText = BUILTIN_REGISTRY.editors!.largeTextEditor!;
 
-        expect(isBuiltinPlaceholder(largeText)).toBe(true);
+        for (const editor of Object.values(BUILTIN_REGISTRY.editors!)) expect(isBuiltinPlaceholder(editor)).toBe(false);
+        expect(isBuiltinPlaceholder(BUILTIN_REGISTRY.renderers!.groupRenderer)).toBe(true);
         expect(isBuiltinPlaceholder(renderer())).toBe(false);
         expect(largeText.presentation).toBe('popup');
         expect(largeText.keyPolicy?.enter).toBe('newline');
