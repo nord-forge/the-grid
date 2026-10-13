@@ -295,6 +295,77 @@ try {
         assert.match(await page.locator('.demo-footer').textContent(), /0\s+changes/);
     });
 
+    await check('header checkbox is centered and truncated group labels expose full titles', async () => {
+        const centered = async () => {
+            const header = page.getByRole('checkbox', { name: 'Select all rows', exact: true });
+            const box = await header.boundingBox();
+            const container = await header.locator('xpath=ancestor::*[@data-grid-part="header-cell"]').boundingBox();
+            const rowBox = await page.getByRole('checkbox', { name: 'Select row', exact: true }).first().boundingBox();
+            assert(
+                Math.abs(box.x + box.width / 2 - container.x - container.width / 2) <= 1,
+                'Header checkbox must be horizontally centered'
+            );
+            assert(
+                Math.abs(box.y + box.height / 2 - container.y - container.height / 2) <= 1,
+                'Header checkbox must be vertically centered'
+            );
+            assert(
+                Math.abs(box.x + box.width / 2 - rowBox.x - rowBox.width / 2) <= 1,
+                'Header and row checkboxes must align'
+            );
+        };
+        await centered();
+        const header = page.getByRole('checkbox', { name: 'Select all rows', exact: true });
+        await header.check();
+        await centered();
+        await header.uncheck();
+        assert.equal(
+            await cell(page, 'name').locator('[data-grid-part="cell-value"]').getAttribute('title'),
+            'Alex Morgan'
+        );
+        assert.equal(
+            await page
+                .locator('[data-grid-part="header-cell"][data-col-id="name"] [data-grid-part="header-label"]')
+                .getAttribute('title'),
+            'Name'
+        );
+        await page.getByRole('button', { name: 'Group by team', exact: true }).click();
+        const label = page.locator('[data-row-kind="group"] [data-grid-part="row-group-label"]').first();
+        await label.waitFor();
+        await centered();
+        const resize = page.locator(
+            '[data-grid-part="header-cell"][data-col-id="__group__"] [data-grid-part="resize-handle"][data-edge="end"]'
+        );
+        const grip = await resize.boundingBox();
+        await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+        await page.mouse.down();
+        await page.mouse.move(grip.x + grip.width / 2 - 120, grip.y + grip.height / 2, { steps: 6 });
+        await page.mouse.up();
+        const dimensions = await label.evaluate((element) => ({
+            width: element.clientWidth,
+            text: element.scrollWidth,
+        }));
+        assert(dimensions.text > dimensions.width, 'Group label must really be truncated for this check');
+        await label.hover();
+        assert.equal(await label.getAttribute('title'), 'Engineering');
+        await centered();
+        await settings(page, true);
+        await page
+            .locator('.demo-settings label')
+            .filter({ hasText: 'Density' })
+            .locator('select')
+            .selectOption('compact');
+        await centered();
+        await page
+            .locator('.demo-settings label')
+            .filter({ hasText: 'Density' })
+            .locator('select')
+            .selectOption('comfortable');
+        await settings(page, false);
+        await page.locator('.grid-demo').screenshot({ path: `${artifacts}/group-label-title.png` });
+        await page.getByRole('button', { name: 'Reset', exact: true }).click();
+    });
+
     await check('select keyboard navigation, typeahead, Tab and Escape preserve focus and values', async () => {
         await page.getByRole('button', { name: 'Reset', exact: true }).click();
         let trigger = await edit(page, 'team');

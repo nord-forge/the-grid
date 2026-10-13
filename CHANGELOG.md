@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- Center header and row selection checkboxes and expose full default cell, column, and group labels through native hover titles.
+
 - Reusable select, number, and currency editors with locale parsing, validation, icon customization, and keyboard navigation.
 - Built-in select choices open on double-click across browsers without requiring native picker support.
 - Cell, row, and grid uploads with application transport, validation, progress, cancellation, permissions, and picker/drop/API entry points.

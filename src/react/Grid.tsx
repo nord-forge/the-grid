@@ -1447,7 +1447,9 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                     context={props.context}
                 />
             ) : (
-                <span data-grid-part="cell-value">{formattedValue}</span>
+                <span data-grid-part="cell-value" title={formattedValue}>
+                    {formattedValue}
+                </span>
             );
         } else if (row.kind === 'loading') {
             content = <span data-grid-part="cell-loading" />;
@@ -1571,6 +1573,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
         return (
             <GroupContent
                 part="group-cell-content"
+                title={label}
                 label={
                     LabelRenderer ? (
                         <LabelRenderer
@@ -1853,7 +1856,9 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                         toggleSort={toggleSort}
                     />
                 ) : (
-                    <span data-grid-part="header-label">{resolved.headerName}</span>
+                    <span data-grid-part="header-label" title={resolved.headerName}>
+                        {resolved.headerName}
+                    </span>
                 )}
                 {store.filterKindOf(column.colId) !== null &&
                 (column.colId in store.query.filterModel ||
@@ -2357,6 +2362,7 @@ function useShallowStable<T extends object | undefined>(value: T): T {
 function GroupContent({
     part,
     label,
+    title,
     level,
     childCount,
     expanded,
@@ -2366,6 +2372,7 @@ function GroupContent({
 }: {
     part: 'group-row-content' | 'group-cell-content';
     label: ReactNode;
+    title?: string;
     icons: GridIcons | undefined;
     level: number;
     childCount: number | null;
@@ -2393,7 +2400,12 @@ function GroupContent({
             ) : (
                 <span data-grid-part="row-expand-spacer" />
             )}
-            <span data-grid-part="row-group-label">{label}</span>
+            <span
+                data-grid-part="row-group-label"
+                title={title ?? (typeof label === 'string' || typeof label === 'number' ? String(label) : undefined)}
+            >
+                {label}
+            </span>
             {childCount !== null && childCount > 0 ? (
                 <span data-grid-part="row-group-count">({childCount})</span>
             ) : null}
