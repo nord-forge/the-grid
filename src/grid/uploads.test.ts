@@ -19,6 +19,64 @@ function setup(overrides: Partial<FileUploadOptions<any>> = {}) {
     return { controller, options };
 }
 describe('file uploads', () => {
+    it('retries failures with fresh IDs, revalidation and current transport', async () => {
+        const { controller, options } = setup({
+            upload: async () => {
+                throw new Error('Offline');
+            },
+        });
+        const [failed] = await controller.upload([file()], { level: 'row', rowId: '1' });
+        options.upload = async () => 'attachment';
+        const retried = await controller.retry(failed!.id);
+        expect(retried).toMatchObject({ status: 'uploaded', result: 'attachment' });
+        expect(retried!.id).not.toBe(failed!.id);
+        expect(controller.getSnapshot()).toEqual([retried]);
+        expect(await controller.retry(retried!.id)).toBeNull();
+        options.upload = async () => {
+            throw new Error('Offline');
+        };
+        const [again] = await controller.upload([file()], { level: 'row', rowId: '1' });
+        options.canUpload = () => false;
+        expect(await controller.retry(again!.id)).toMatchObject({ status: 'rejected' });
+    });
+    it('retries cancellation without late progress or completion corrupting the fresh task', async () => {
+        let finish!: (value: string) => void;
+        let progress!: (value: number) => void;
+        const { controller, options } = setup({
+            upload: ({ reportProgress }) => {
+                progress = reportProgress;
+                return new Promise((resolve) => {
+                    finish = resolve;
+                });
+            },
+        });
+        const done = controller.upload([file()], { level: 'grid' });
+        await tick();
+        const id = controller.getSnapshot()[0]!.id;
+        expect(await controller.retry(id)).toBeNull();
+        controller.cancel(id);
+        await done;
+        options.upload = async () => 'new';
+        const retry = await controller.retry(id);
+        progress(90);
+        finish('old');
+        await tick();
+        expect(controller.getSnapshot()).toEqual([retry]);
+        expect(retry).toMatchObject({ status: 'uploaded', result: 'new' });
+        controller.destroy();
+        expect(await controller.retry(retry!.id)).toBeNull();
+    });
+    it.each([NaN, Infinity, -1, 0, 1.5])(
+        'normalizes concurrency %s without leaving tasks stuck',
+        async (concurrency) => {
+            const { controller } = setup({ concurrency });
+            expect(
+                (await controller.upload([file(), file()], { level: 'grid' })).every(
+                    (task) => task.status === 'uploaded'
+                )
+            ).toBe(true);
+        }
+    );
     it.each<FileUploadTarget>([
         { level: 'grid' },
         { level: 'row', rowId: '1' },

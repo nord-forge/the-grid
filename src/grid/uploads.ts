@@ -125,11 +125,21 @@ export class FileUploadController<TData> {
         this.#pump();
         return Promise.all(promises);
     }
+    /** A fresh task revalidates the file and current target. Old transport completions cannot touch it. */
+    retry(id: string): Promise<FileUploadTask | null> {
+        const task = this.#tasks.find((task) => task.id === id);
+        if (this.#destroyed || !task || !['failed', 'cancelled', 'rejected'].includes(task.status))
+            return Promise.resolve(null);
+        const retry = this.upload([task.file], task.target);
+        this.#tasks = this.#tasks.filter((task) => task.id !== id);
+        this.#notify();
+        return retry.then((tasks) => tasks[0] ?? null);
+    }
     #pump() {
         while (
             !this.#destroyed &&
             this.#pending.length &&
-            this.#running.size < Math.max(1, this.#pending[0]!.options.concurrency ?? 3)
+            this.#running.size < uploadConcurrency(this.#pending[0]!.options.concurrency)
         ) {
             const pending = this.#pending.shift()!;
             const task = this.#tasks.find((task) => task.id === pending.id)!;
@@ -212,4 +222,8 @@ export class FileUploadController<TData> {
             if (task.status === 'queued' || task.status === 'uploading') this.cancel(task.id);
         this.#listeners.clear();
     }
+}
+
+function uploadConcurrency(value = 3): number {
+    return Number.isFinite(value) ? Math.max(1, Math.floor(value)) : 3;
 }

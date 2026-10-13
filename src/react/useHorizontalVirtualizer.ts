@@ -19,6 +19,8 @@ export type HorizontalVirtualizerOptions = {
     overscan?: number;
     /** Columns kept mounted while scrolled away: the focused and the editing column. */
     retainedColIds?: readonly string[];
+    /** Content layout mounts all displayed columns, including horizontally offscreen ones. */
+    renderAll?: boolean;
 };
 
 export type HorizontalVirtualizer = {
@@ -95,7 +97,10 @@ export function useHorizontalVirtualizer(options: HorizontalVirtualizerOptions):
         [scrollRef, layout]
     );
 
-    const window = layout.getWindow(scrollLeft, viewportWidth, overscan, options.retainedColIds ?? []);
+    const window = options.renderAll
+        ? layout.getWindow(0, layout.totalWidth, 0)
+        : layout.getWindow(scrollLeft, viewportWidth, overscan, options.retainedColIds ?? []);
+    if (options.renderAll) window.centerItems = window.centerItems.filter((item) => item.type === 'run');
 
     return { layout, window, groupRows: layout.getGroupHeaderRows(window), resize, scrollToColumn };
 }

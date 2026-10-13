@@ -12,6 +12,7 @@ export {
 export { VirtualRows, type RowRenderProps, type VirtualRowsProps } from './VirtualRows';
 export { useGridGeometry, type GridGeometryOptions } from './useGridGeometry';
 export { Grid } from './Grid';
+export { AttachmentList, type AttachmentListProps } from './AttachmentList';
 export { createGridApi, type GridApiDeps } from './gridApi';
 export { DefaultMenu, DefaultPopup, TextCellEditor } from './defaults';
 export { LargeTextCellEditor, DateCellEditor, DateStringCellEditor, CheckboxCellEditor } from './basicEditors';

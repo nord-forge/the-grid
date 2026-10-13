@@ -12,6 +12,8 @@ npm install @nord-forge/the-grid
 
 React 19 is a peer dependency. The package has no runtime dependencies of its own.
 
+Browser requirements for the built-in theme and popup components: **Chrome/Edge 114+, Firefox 125+, Safari 17+ (iOS 17+)**. CI exercises current Chromium, Firefox, and WebKit; it does not run those historical minimum versions. See the [browser support table and legacy plan](https://the-grid.nickbevers.dev/reference/browser-support/). There is no legacy-browser entry point yet.
+
 ## Use
 
 ```tsx
@@ -82,11 +84,16 @@ To deploy on Vercel, import **nord-forge/the-grid** with the **repository root**
 | `npm test` | Unit tests (Vitest) for `src/` |
 | `npm run build` | Build `dist/` (ESM, type declarations and `styles.css`), then guard it: the styling API rules (`check-styles`), no absolute positioning, React peers only |
 | `npm run check` | All of the above plus the browser checks |
+| `npm run check:ci` | Type checks, serial unit/docs tests, guarded package build, and docs build |
+| `npm run release:check` | Verify release metadata and, when set, the exact `RELEASE_TAG` commit |
+| `npm run package:check` | Consume the packed archive: verify its runtime exports, TypeScript declarations, and stylesheet |
 | `npm run playground` | Development fixtures; `?fixture=interactive` is the full grid with a theme, colour scheme and density switcher |
 | `npm run playground:check` | Browser checks for the playground fixtures (add `-- --browser=firefox` or `webkit`); results go to `playground/results/` |
 | `npm run format` | Format with oxfmt |
 
 `npm install` needs `legacy-peer-deps`, which `.npmrc` sets, because of an npm 10 peer resolution bug.
+
+GitHub CI runs the package/docs checks and isolated browser tests. Releases publish through npm trusted publishing after its account-side setup; see [RELEASING.md](RELEASING.md).
 
 ## Layout
 

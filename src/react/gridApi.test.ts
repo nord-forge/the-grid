@@ -82,6 +82,7 @@ it('makes every API mutation inert and returns empty reads after destruction', a
     api.setState({ focusedCell: cell });
     expect(api.setCellValue(cell, 'Changed')).toBe(false);
     expect(await api.writeCells([{ cell, value: 'Changed' }])).toEqual({ written: 0, rejected: 0 });
+    expect(await api.retryUpload('upload-1')).toBeNull();
     await api.whenSettled();
     expect(store.rowModel.getRowCount()).toBe(1);
     expect(store.getRow('1')).toMatchObject({ data: { name: 'Alex' } });

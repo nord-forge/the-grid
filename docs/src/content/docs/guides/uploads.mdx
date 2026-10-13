@@ -9,7 +9,7 @@ Supply `uploads` to enable the file picker, drop targets, activity list, and upl
 
 ## Try it
 
-Choose files below, or drop them on a cell or the header. Accepted files: text, CSV, PDF, and images, up to 2 MB each. Use a filename containing `fail` to try an error. Open **Drop settings** to test row and grid routing.
+Choose files below, or drop them on a cell or the header. Accepted files: text, CSV, PDF, and images, up to 2 MB each. Use a filename containing `fail` to try a failure followed by a successful retry. Uploaded files appear in a separate attachment list with image previews, downloads, and removal. Open **Drop settings** to test row and grid routing.
 
 <UploadDemo client:only="react" />
 
@@ -82,4 +82,30 @@ api.clearUploads(); // keeps queued and running tasks
 
 `uploadFiles()` resolves after every file in the batch reaches a terminal state, including rejection or cancellation. It returns an empty list when the grid has been destroyed. Calls without an `uploads` transport produce rejected tasks explaining that uploads are disabled. Existing row-reordering drags are separate from file drags.
 
-The example above simulates uploads locally, including progress, cancellation, errors, and all three target levels. It does not send or persist file contents. Use a filename containing `fail` to exercise an error.
+The example above simulates uploads locally. Attachment download and preview URLs are temporary browser object URLs, released when removed or the demo unmounts. Nothing is sent or persisted.
+
+## Retry an upload
+
+The activity list offers **Retry** for failed, cancelled, or rejected tasks whose targets are permitted. Use `await api.retryUpload(taskId)` from your application. Each retry creates a new task ID, uses the current transport/options, and rechecks file validation, target existence, and permissions. The old attempt is replaced in activity. Active, successful, missing, or destroyed tasks return `null`. Clearing activity does not delete application-owned attachments.
+
+## Render attachments
+
+`AttachmentList` is a controlled component: pass application-owned `GridAttachment` records, optional `onRemove` and `canRemove` callbacks, and an optional `renderPreview`. Removal awaits your callback, disables its button while pending, and shows failures without hiding the record. Successful removal must update your application state. An image preview requires `contentType` beginning with `image/` and a `previewUrl`. Download links use `url`; supply your own authenticated or signed URLs.
+
+```tsx
+import { AttachmentList, type GridAttachment } from '@nord-forge/the-grid';
+
+const attachments: GridAttachment[] = [
+  { id: 'file-1', name: 'invoice.pdf', url: '/files/file-1', size: 2048,
+    contentType: 'application/pdf', target: { level: 'row', rowId: '7' } },
+];
+
+<div data-grid-part="root">
+  <AttachmentList attachments={attachments} onRemove={async attachment => {
+    await deleteAttachment(attachment.id);
+    setAttachments(current => current.filter(item => item.id !== attachment.id));
+  }} />
+</div>
+```
+
+Place the list inside a grid renderer or footer, or use a `data-grid-part="root"` wrapper for the default stylesheet. Pass filtered records for a cell, row, or grid; the component does not impose a storage model. Public attachment parts support application styling.

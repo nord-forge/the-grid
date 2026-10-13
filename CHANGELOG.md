@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.2.0 - 2026-10-13
+
+- Document browser feature requirements and the proposed 2021 browser target; pin the standard JavaScript build target.
+- Complete content layout with all rows and columns mounted, measured heights, page focus scrolling, server count discovery, and an enforced displayed/pinned row limit.
+- Add upload retries with fresh attempt IDs and revalidation, plus a controlled attachment list with previews, downloads, and asynchronous removal.
+- Normalize invalid upload concurrency values so queued uploads cannot get stuck.
+- Add GitHub CI and npm trusted-publishing workflows, with version/tag/lockfile/changelog verification before publication.
+- Fix published declaration imports for NodeNext consumers and verify the packed archive's runtime exports, types, and stylesheet in CI.
+
 - Preserve unchanged numeric values across locales and accept scientific notation and pasted negative currency amounts.
 - Make retained API, row, and geometry handles safe after grid destruction.
 - Replace named editor placeholders with working text, multiline, select, number, currency, checkbox, and date editors; preserve application overrides.

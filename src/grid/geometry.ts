@@ -54,6 +54,8 @@ export type GeometryOptions<TData> = {
     /** Retained-aware window of mounted rows and columns, for the mounted part of the visible range. */
     mountedRows?: () => { first: number; last: number };
     resetRowHeights?: (rowIds?: RowId[]) => void;
+    /** Content layout may reveal a mounted row through the page's scroll containers. */
+    revealRow?: (index: number, align: ScrollAlignment) => void;
     overscanColumns?: number;
 };
 
@@ -381,6 +383,7 @@ export function createGeometry<TData>(options: GeometryOptions<TData>): Geometry
         },
         ensureIndexVisible(index, align = 'auto') {
             ensureVertical(index, align);
+            options.revealRow?.(index, align);
         },
         ensureCellVisible(cell, align = 'auto') {
             const index = options.source().indexOf(cell.rowId);
@@ -391,6 +394,7 @@ export function createGeometry<TData>(options: GeometryOptions<TData>): Geometry
             if (Math.abs(left - viewport.scrollLeft()) >= 0.5) {
                 viewport.setScrollLeft(left);
             }
+            if (index !== undefined) options.revealRow?.(index, align);
         },
         resetRowHeights(rowIds) {
             options.resetRowHeights?.(rowIds);

@@ -20,8 +20,8 @@ description: The main Grid component's data, layout, interaction, state, renderi
 
 | Prop | Type / purpose |
 | --- | --- |
-| `layout` | `'virtual'` (default); `'content'` is incomplete |
-| `contentModeRowLimit` | Declared in the contract but not enforced yet |
+| `layout` | `'virtual'` (default), or `'content'` to mount every displayed row and column and grow with content |
+| `contentModeRowLimit` | Positive integer; defaults to 1000 displayed body and pinned rows |
 | `rowHeight` | Number, `'measure'`, or per-row callback |
 | `headerHeight` | Pixel height of each header row |
 | `overscan` | `{ rows?: number; columns?: number }` |

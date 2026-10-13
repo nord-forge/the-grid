@@ -28,7 +28,7 @@ The library build checks its output for unexpected dependencies, absolute positi
 
 The package is an early 0.x release. Supported features include local and server data, sorting, filtering, grouping, tree rows, sticky groups, pinned rows and columns, ranges, clipboard, editing, persisted writes, saved views, and server export queries.
 
-The API may change before 1.0. Pivot and value-related column fields are carried through state and requests but do not have a pivot UI. Content layout remains incomplete, and its declared row limit is not enforced. Server page sizes are configurable independently of fetch block sizes.
+The API may change before 1.0. Pivot and value-related column fields are carried through state and requests but do not have a pivot UI. Content layout renders all displayed rows and columns with an enforced row limit. Server page sizes are configurable independently of fetch block sizes.
 
 ## File uploads
 

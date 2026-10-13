@@ -20,7 +20,7 @@ export const demoUpload: FileUploadOptions<Person>['upload'] = ({ file, signal, 
             if (percent === 100) {
                 cleanup();
                 if (file.name.toLowerCase().includes('fail'))
-                    reject(new Error('Demo upload failed. Rename the file to try a successful upload.'));
+                    reject(new Error('Demo upload failed. Use Retry to try again.'));
                 else resolve({ name: file.name, size: file.size, type: file.type });
             }
         }, 150);

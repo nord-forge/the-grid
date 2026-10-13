@@ -7,6 +7,16 @@ export type FileUploadTarget =
     | { level: 'row'; rowId: RowId }
     | { level: 'cell'; rowId: RowId; colId: string };
 export type FileUploadStatus = 'queued' | 'uploading' | 'uploaded' | 'rejected' | 'failed' | 'cancelled';
+/** Application-owned attachment metadata; upload activity can be cleared without deleting attachments. */
+export type GridAttachment = {
+    id: string;
+    name: string;
+    url?: string;
+    previewUrl?: string;
+    contentType?: string;
+    size?: number;
+    target?: FileUploadTarget;
+};
 export type FileUploadTask = {
     id: string;
     file: File;
@@ -36,7 +46,7 @@ export type FileUploadOptions<TData> = {
     /** Maximum files in one picker/drop/API batch. */
     maxFiles?: number;
     multiple?: boolean;
-    /** Simultaneous uploads. Default 3. */
+    /** Simultaneous uploads. Default 3; finite values floor to at least 1, non-finite values use 3. */
     concurrency?: number;
     /** Additional target permission, applied equally to drops, picker and API calls. */
     canUpload?: (

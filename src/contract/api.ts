@@ -142,6 +142,8 @@ export type GridApi<TData> = {
     ): Promise<readonly import('./uploads').FileUploadTask[]>;
     getUploads(): readonly import('./uploads').FileUploadTask[];
     cancelUpload(id: string): void;
+    /** Retry a failed, cancelled or rejected upload after revalidating it. Null for active, successful or missing tasks. */
+    retryUpload(id: string): Promise<import('./uploads').FileUploadTask | null>;
     clearUploads(): void;
 
     // Pagination (server resource grids page at 100 rows today)

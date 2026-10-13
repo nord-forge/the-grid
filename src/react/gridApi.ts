@@ -72,6 +72,7 @@ export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
         cancelUpload: (id) => {
             if (!destroyed) deps.uploads?.cancel(id);
         },
+        retryUpload: (id) => deps.uploads?.retry(id) ?? Promise.resolve(null),
         clearUploads: () => {
             if (!destroyed) deps.uploads?.clear();
         },
@@ -341,6 +342,7 @@ export function createGridApi<TData>(deps: GridApiDeps<TData>): GridApi<TData> {
         getCellValue: () => undefined,
         getEditingCell: () => null,
         uploadFiles: () => Promise.resolve([]),
+        retryUpload: () => Promise.resolve(null),
         getUploads: () => [],
         getPagination: () => null,
         whenSettled: () => Promise.resolve(),

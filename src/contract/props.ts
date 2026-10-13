@@ -69,6 +69,7 @@ export type GridProps<TData> = {
     registry?: GridRegistry<TData>;
     apiRef?: Ref<GridApi<TData> | null>;
     layout?: LayoutMode;
+    /** Maximum displayed body and pinned rows in content layout. Default 1000; positive integer. */
     contentModeRowLimit?: number;
 
     /** Spacing preset. `compact` suits forms; it lowers the default row and header heights and the cell padding tokens. */

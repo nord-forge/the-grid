@@ -72,6 +72,7 @@ export class VerticalLayout<TData> {
     #viewportHeight = 0;
     #retained = new Set<RowId>();
     #mapping: ScrollMapping;
+    #renderAll = false;
     /**
      * The anchor as of the last consistent state. Captured after every change, not when the next change
      * arrives: a mutable source (the server projection) may already hold the new rows by then.
@@ -119,6 +120,13 @@ export class VerticalLayout<TData> {
     /** Rows kept mounted outside the window: the focused row and the row being edited. */
     setRetained(ids: Iterable<RowId>): void {
         this.#retained = new Set(ids);
+    }
+
+    /** Content mode keeps geometry and measurement, but mounts all rows without scroll scaling. */
+    setRenderAll(renderAll: boolean): void {
+        if (this.#renderAll === renderAll) return;
+        this.#renderAll = renderAll;
+        this.#remap();
     }
 
     /**
@@ -225,8 +233,16 @@ export class VerticalLayout<TData> {
         });
 
         return {
-            items: result.items,
-            runs: result.runs,
+            items: this.#renderAll
+                ? this.#source.count
+                    ? [{ type: 'run', start: 0, end: this.#source.count - 1 }]
+                    : []
+                : result.items,
+            runs: this.#renderAll
+                ? this.#source.count
+                    ? [{ start: 0, end: this.#source.count - 1 }]
+                    : []
+                : result.runs,
             firstVisible: result.firstVisible,
             lastVisible: result.lastVisible,
             totalHeight: this.#mapping.physicalTotal,
@@ -343,7 +359,11 @@ export class VerticalLayout<TData> {
     }
 
     #remap(): void {
-        this.#mapping = createScrollMapping(this.#heights.total, this.#viewportHeight, this.#options.maxPhysicalHeight);
+        this.#mapping = createScrollMapping(
+            this.#heights.total,
+            this.#viewportHeight,
+            this.#renderAll ? Infinity : this.#options.maxPhysicalHeight
+        );
         // Only the upper bound: content may have shrunk. A negative position is elastic overscroll (Safari)
         // and is left to the browser.
         this.#scrollTop = Math.min(this.#scrollTop, Math.max(0, this.#mapping.physicalTotal - this.#viewportHeight));

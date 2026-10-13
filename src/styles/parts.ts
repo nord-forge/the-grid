@@ -80,6 +80,12 @@ export const GRID_PARTS = {
     'upload-summary': 'Live upload status.',
     'upload-list': 'Upload activity list.',
     'upload-item': 'A file upload and its progress or error.',
+    'attachments': 'Controlled attachment list container.',
+    'attachment-empty': 'Empty attachment list message.',
+    'attachment-list': 'Application-owned attachment records.',
+    'attachment-item': 'Attachment preview, details and actions.',
+    'attachment-preview': 'Optional image preview.',
+    'attachment-info': 'Attachment name, target and file size.',
 
     'editor-error': 'Validation message under an editor.',
     'overlay': 'Loading, empty or error overlay (data-overlay, data-overlay-reason).',
@@ -97,6 +103,8 @@ export type GridPart = keyof typeof GRID_PARTS;
 
 /** State attributes, the parts they appear on, and what they mean. Values are present or absent unless noted. */
 export const GRID_STATES = {
+    'data-layout':
+        'root: "virtual" mounts viewport rows and columns; "content" renders all displayed rows and columns.',
     'data-upload-target': 'root, row or cell: a permitted file drop target.',
     'data-density': 'root: "comfortable" or "compact".',
     'data-color-scheme': 'root: "light", "dark" or "system" (follows the operating system).',

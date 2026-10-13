@@ -24,6 +24,8 @@ export type VerticalVirtualizerOptions<TData> = {
     insetBottom?: number;
     /** Rows kept mounted while scrolled away: the focused row and the row being edited. */
     retainedIds?: readonly RowId[];
+    /** Content layout: mount every row while retaining measurement and geometry. */
+    renderAll?: boolean;
 };
 
 export type VerticalVirtualizer<TData> = {
@@ -48,6 +50,7 @@ export function useVerticalVirtualizer<TData>(options: VerticalVirtualizerOption
         ...(options.overscan !== undefined ? { overscan: options.overscan } : {}),
     });
     const layout = layoutRef.current;
+    layout.setRenderAll(options.renderAll ?? false);
     const pendingCorrection = useRef<ScrollCorrection>(null);
     /**
      * A scroll-to request is re-applied while the rows around it are measured, so 'end' really ends at

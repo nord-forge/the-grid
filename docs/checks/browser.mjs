@@ -5,6 +5,8 @@ import { decodePng } from '../../playground/checks/png.mjs';
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import { mkdirSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Playwright owns isolated, headless test profiles. No personal browser is used.
@@ -24,13 +26,16 @@ if (browserName === 'all') {
     }
     process.exit(0);
 }
-const artifacts = `/private/tmp/the-grid-browser-review/${browserName}`;
+const artifacts = join(process.env.GRID_BROWSER_ARTIFACTS ?? join(tmpdir(), 'the-grid-browser-review'), browserName);
 mkdirSync(artifacts, { recursive: true });
 const checks = [];
 const errors = [];
+const filters = process.argv.filter((arg) => arg.startsWith('--check=')).map((arg) => arg.slice(8));
+const enabled = (name) => !filters.length || filters.some((filter) => name.includes(filter));
 const browser = await { chromium, firefox, webkit }[browserName].launch({ headless: true });
 
 async function check(name, run) {
+    if (!enabled(name)) return;
     await run();
     checks.push(name);
     console.log(`PASS ${name}`);
@@ -45,6 +50,7 @@ async function open(page, route = 'examples/') {
     // a test navigates again, so navigation cannot cancel it and produce a teardown rejection.
     await page.locator('site-search .pagefind-ui__search-input').waitFor({ state: 'attached' });
     if (route === 'guides/editing/') await page.getByRole('grid', { name: 'Built-in editors example' }).waitFor();
+    else if (route === 'guides/rows/') await page.getByRole('grid', { name: 'Content layout example' }).waitFor();
     else await cell(page, 'team').waitFor();
 }
 
@@ -695,6 +701,100 @@ try {
         await open(page);
     });
 
+    await check('content layout renders all columns, measured rows, limits and server blocks', async () => {
+        await open(page, 'guides/rows/');
+        const demo = page.getByRole('region', { name: 'Content layout demo', exact: true });
+        const grid = page.getByRole('grid', { name: 'Content layout example', exact: true });
+        const rows = grid.locator('[data-grid-part="body"] [data-grid-part="row"]');
+        assert.equal(await rows.count(), 3);
+        assert.equal(await grid.locator('[data-grid-part="cell"]').count(), 24);
+        assert.equal(await grid.locator('[data-grid-part="row-spacer"], [data-grid-part="col-spacer"]').count(), 0);
+        const heights = await rows.evaluateAll((elements) =>
+            elements.map((element) => element.getBoundingClientRect().height)
+        );
+        assert(heights[1] > heights[0] + 20, 'Measured text must grow the row');
+        const size = await grid.evaluate((element) => ({ client: element.clientHeight, scroll: element.scrollHeight }));
+        assert(size.scroll <= size.client + 1, 'Content mode must grow instead of scrolling vertically');
+        await demo.getByRole('button', { name: 'Toggle 3 / 6 rows', exact: true }).click();
+        await grid.getByRole('alert').waitFor();
+        assert.equal(await rows.count(), 0);
+        assert.match(await grid.getByRole('alert').textContent(), /contentModeRowLimit is 5/);
+        await demo.getByRole('button', { name: 'Row limit: 5', exact: true }).click();
+        await rows.nth(5).waitFor();
+        await grid.evaluate((element) => (element.scrollLeft = element.scrollWidth));
+        assert.equal(await grid.locator('[data-grid-part="cell"][data-col-id="extra-5"]').count(), 6);
+        await demo.getByRole('button', { name: 'Layout: content', exact: true }).click();
+        assert((await grid.boundingBox()).height <= 180);
+        assert.equal(await grid.evaluate((element) => element.scrollHeight > element.clientHeight), true);
+        await demo.getByRole('button', { name: 'Layout: virtual', exact: true }).click();
+        await rows.nth(5).waitFor();
+        await demo.getByRole('button', { name: 'Focus last row', exact: true }).click();
+        assert.equal(await grid.locator('[data-focused][data-col-id="name"]').count(), 1);
+        await demo.getByRole('button', { name: 'Data: local', exact: true }).click();
+        try {
+            await rows.nth(5).waitFor({ timeout: 10000 });
+        } catch (error) {
+            console.error('Content demo state', await demo.textContent());
+            await page.screenshot({ path: `${artifacts}/content-failure.png` });
+            throw error;
+        }
+        await page.waitForFunction(
+            () =>
+                document.querySelector('[aria-label="Content layout demo"] [role="status"]')?.textContent ===
+                'Server requests: 3'
+        );
+        assert.equal(await grid.locator('[data-row-kind="loading"]').count(), 0);
+        await demo.getByRole('button', { name: 'Row limit: 10', exact: true }).click();
+        await grid.getByRole('alert').waitFor();
+        await demo.getByRole('button', { name: 'Toggle 3 / 6 rows', exact: true }).click();
+        await rows.nth(2).waitFor();
+        assert.equal(await grid.getByRole('alert').count(), 0);
+        await demo.getByRole('button', { name: 'Server count: known', exact: true }).click();
+        await grid.getByRole('alert').waitFor();
+        assert.match(await grid.getByRole('alert').textContent(), /known row count/);
+        assert.equal(await rows.count(), 0);
+        await demo.getByRole('button', { name: 'Server count: unknown', exact: true }).click();
+        await rows.nth(2).waitFor();
+        assert.equal(await grid.getByRole('alert').count(), 0);
+        await grid.screenshot({ path: `${artifacts}/content-layout.png` });
+        await open(page);
+    });
+
+    await check('uploads retry, attachments preview, download, remove and survive activity clearing', async () => {
+        await open(page, 'guides/uploads/');
+        const input = page.locator('[data-grid-part="upload-input"]');
+        const activity = page.locator('[data-grid-part="upload-item"]').filter({ hasText: 'fail.txt' });
+        await input.setInputFiles({
+            name: 'fail.txt',
+            mimeType: 'text/plain',
+            buffer: Buffer.from('Retry attachment contents'),
+        });
+        await activity.getByRole('button', { name: 'Retry upload fail.txt', exact: true }).waitFor();
+        await activity.getByRole('button', { name: 'Retry upload fail.txt', exact: true }).click();
+        await page.getByRole('link', { name: 'Download fail.txt', exact: true }).waitFor();
+        assert.equal(await activity.count(), 1);
+        const downloadPromise = page.waitForEvent('download');
+        await page.getByRole('link', { name: 'Download fail.txt', exact: true }).click();
+        const downloaded = await downloadPromise;
+        assert.equal(downloaded.suggestedFilename(), 'fail.txt');
+        const stream = await downloaded.createReadStream();
+        const chunks = [];
+        for await (const chunk of stream) chunks.push(chunk);
+        assert.equal(Buffer.concat(chunks).toString(), 'Retry attachment contents');
+        await page.getByRole('button', { name: 'Clear finished uploads', exact: true }).click();
+        assert.equal(await page.getByRole('link', { name: 'Download fail.txt', exact: true }).count(), 1);
+        const png = await page.screenshot({ clip: { x: 0, y: 0, width: 16, height: 16 } });
+        await input.setInputFiles({ name: 'preview.png', mimeType: 'image/png', buffer: png });
+        const preview = page.getByRole('img', { name: 'Preview of preview.png', exact: true });
+        await preview.waitFor();
+        await page.waitForFunction(() => document.querySelector('[alt="Preview of preview.png"]')?.naturalWidth > 0);
+        await page.getByRole('button', { name: 'Remove preview.png', exact: true }).click();
+        assert.equal(await preview.count(), 0);
+        await page.getByRole('button', { name: 'Remove fail.txt', exact: true }).click();
+        await page.getByText('No attachments yet.', { exact: true }).waitFor();
+        await open(page);
+    });
+
     await check('production search returns documentation results', async () => {
         await page.getByRole('button', { name: 'Search the grid docs', exact: true }).click();
         const dialog = page.getByRole('dialog');
@@ -705,6 +805,7 @@ try {
     });
 
     for (const theme of ['dark', 'light']) {
+        if (!enabled(`editing preserves every cell border in ${theme} mode`)) continue;
         const borderContext = await browser.newContext({
             viewport: { width: 1890, height: 1100 },
             colorScheme: theme,

@@ -26,6 +26,7 @@ export type GridGeometryOptions<TData> = {
     stickyRowsAt?: (scrollTop: number) => readonly StuckRow[];
     /** The grid's event bus; one is created when omitted. */
     events?: EventBus<GridEventMap<TData>>;
+    contentMode?: boolean;
 };
 
 export function useGridGeometry<TData>(options: GridGeometryOptions<TData>): {
@@ -62,6 +63,12 @@ export function useGridGeometry<TData>(options: GridGeometryOptions<TData>): {
                     return { first: main?.start ?? -1, last: main?.end ?? -1 };
                 },
                 resetRowHeights: (rowIds) => latest.current.vertical.resetHeights(rowIds),
+                revealRow: (index, align) => {
+                    if (!latest.current.contentMode) return;
+                    latest.current.scrollRef.current
+                        ?.querySelector<HTMLElement>(`[data-grid-part="row"][data-row-index="${index}"]`)
+                        ?.scrollIntoView({ block: align === 'auto' ? 'nearest' : align, inline: 'nearest' });
+                },
             }),
         [options.vertical.layout, options.horizontal.layout]
     );

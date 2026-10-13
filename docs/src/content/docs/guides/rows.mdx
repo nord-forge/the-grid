@@ -3,6 +3,8 @@ title: Local rows and layout
 description: Use stable row identities, transactions, pinned rows, and variable row heights.
 ---
 
+import ContentDemo from '../../../components/ContentDemo';
+
 ## Local data
 
 A local data source holds your complete dataset in memory. Sorting, filtering, grouping, and quick filtering run in the browser.
@@ -35,9 +37,21 @@ api.applyTransaction({
 
 The default `virtual` layout mounts rows and columns near a bounded viewport. Set a height on the parent so it can scroll and measure the visible window.
 
-:::caution[Content layout is incomplete]
-The public API declares `layout="content"` and `contentModeRowLimit`. Currently, content layout removes the root's fixed height but still uses the virtualizers, and the row limit is not enforced. Use the default virtual layout for production grids.
-:::
+## Content layout
+
+Use `layout="content"` for small grids in forms or document flow. Every displayed row and column stays mounted, including horizontally offscreen columns; the grid grows with fixed or measured row heights. It can scroll horizontally without a fixed parent height. Focus navigation reveals rows through the page's scroll containers.
+
+`contentModeRowLimit` defaults to **1000** and must be a positive integer. The limit includes displayed body rows (including expanded group/detail rows) and pinned rows. When exceeded, the grid logs an error and shows an alert instead of rendering rows; reducing the dataset or raising the limit restores rendering. Filtering can reduce the displayed count. Virtual layout does not use this limit.
+
+For server data, the first block loads to establish the count. Return `rowCount` in the response: a count within the limit loads all displayed blocks; larger counts are refused. If the count is still unknown after loading, content layout shows an alert asking for a known count or virtual layout. With server pagination, the limit applies to the current page.
+
+```tsx
+<Grid data={data} columns={columns} layout="content" contentModeRowLimit={100} rowHeight="measure" />
+```
+
+Try measured heights, horizontal scrolling, a limit violation, and switching to virtual layout:
+
+<ContentDemo client:only="react" />
 
 ## Row heights
 

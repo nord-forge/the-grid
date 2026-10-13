@@ -31,6 +31,7 @@ This also applies to retained `api.rows` and `api.geometry` handles. After destr
 | `getDataSource()`, `getStatus()` | Data source and load status |
 | `getSourceRows()` | Local source rows, or `null` for server data |
 | `applyTransaction(transaction)` | Add, update, or remove local rows |
+| `retryUpload(taskId)` | Revalidate and retry a failed, cancelled, or rejected task; returns the fresh terminal task or `null` |
 | `patchRows(updates)` | Replace loaded row data by ID |
 | `refresh(options)` | Recompute local data or refetch server blocks |
 | `refreshCells(options)` | Rerender cells without rerunning the query |

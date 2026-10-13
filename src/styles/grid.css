@@ -1064,4 +1064,51 @@
     :where([data-grid-part='root']) :where([data-grid-part='upload-item']) :where(button) {
         font: inherit;
     }
+    :where([data-grid-part='root']) :where([data-grid-part='attachments']) {
+        padding: 12px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='attachment-list']) {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='attachment-item']) {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 0;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='attachment-info']) {
+        display: flex;
+        flex: 1;
+        flex-direction: column;
+        min-width: 100px;
+        overflow-wrap: anywhere;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='attachment-info']) :where(small) {
+        color: var(--the-grid-muted-foreground);
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='attachment-preview']) {
+        width: 48px;
+        height: 48px;
+        object-fit: cover;
+        border-radius: 4px;
+    }
+    :where([data-grid-part='root']) :where([data-grid-part='attachment-item']) :where(button, a) {
+        font: inherit;
+        color: inherit;
+        border: 1px solid var(--the-grid-border-color);
+        border-radius: 4px;
+        background: var(--the-grid-editor-background);
+        padding: 4px 8px;
+        cursor: pointer;
+        text-decoration: none;
+    }
+    :where([data-grid-part='root'])
+        :where([data-grid-part='attachment-item'])
+        :where(button:focus-visible, a:focus-visible) {
+        outline: 2px solid var(--the-grid-accent);
+        outline-offset: 1px;
+    }
 }

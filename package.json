@@ -1,6 +1,6 @@
 {
     "name": "@nord-forge/the-grid",
-    "version": "0.1.0",
+    "version": "0.2.0",
     "type": "module",
     "description": "A virtualized React data grid in normal document flow. React is its only peer; no runtime dependencies.",
     "keywords": [
@@ -52,9 +52,12 @@
         "docs:build": "npm run build --prefix docs",
         "docs:preview": "npm run preview --prefix docs",
         "tsc": "tsc --noEmit",
-        "build": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json && cp src/styles/grid.css dist/styles.css && node scripts/check-styles.mjs && node scripts/check-dist.mjs",
+        "build": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json && node scripts/fix-declarations.mjs && cp src/styles/grid.css dist/styles.css && node scripts/check-styles.mjs && node scripts/check-dist.mjs",
         "test": "vitest run src",
         "check": "npm run tsc && npm test && npm run build && npm run playground:check",
+        "check:ci": "npm run tsc && vitest run src docs/checks --maxWorkers=1 && npm run build && npm run package:check && npm run docs:build",
+        "package:check": "node scripts/check-package.mjs",
+        "release:check": "node scripts/check-release.mjs",
         "playground": "vite playground --port 5194 --strictPort",
         "playground:check": "node playground/checks/vertical.mjs && node playground/checks/horizontal.mjs && node playground/checks/geometry.mjs && node playground/checks/interactive.mjs && node playground/checks/styling.mjs && node playground/checks/rows.mjs && node playground/checks/server.mjs && node playground/checks/filters.mjs && node playground/checks/groups.mjs && node playground/checks/writes.mjs && node playground/checks/views.mjs",
         "format": "oxfmt src playground scripts",

@@ -1,4 +1,4 @@
-import { Grid, type ColumnDefinition, type GridApi } from '@nord-forge/the-grid';
+import { Grid, AttachmentList, type GridAttachment, type ColumnDefinition, type GridApi } from '@nord-forge/the-grid';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import '@nord-forge/the-grid/styles.css';
 
@@ -15,6 +15,16 @@ export default function UploadDemo() {
     const [revision, setRevision] = useState(0);
     const [dropScope, setDropScope] = useState<'cell' | 'row' | 'grid'>('cell');
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
+    const [attachments, setAttachments] = useState<readonly GridAttachment[]>([]);
+    const urls = useRef(new Set<string>());
+    const attempts = useRef(new WeakSet<File>());
+    const nextId = useRef(0);
+    useEffect(
+        () => () => {
+            for (const url of urls.current) URL.revokeObjectURL(url);
+        },
+        []
+    );
     const data = useMemo(
         () => ({ type: 'local' as const, rows: makeRows(4), getRowId: (person: Person) => person.id }),
         [revision]
@@ -51,10 +61,51 @@ export default function UploadDemo() {
                             maxFileSize: 2 * 1024 * 1024,
                             maxFiles: 5,
                             concurrency: 2,
-                            upload: demoUpload,
+                            upload: async (context) => {
+                                // fail files fail once, then succeed through the same retry action as real transports.
+                                await demoUpload({
+                                    ...context,
+                                    file:
+                                        context.file.name.toLowerCase().includes('fail') &&
+                                        attempts.current.has(context.file)
+                                            ? new File([context.file], context.file.name.replace(/fail/gi, 'retry'), {
+                                                  type: context.file.type,
+                                              })
+                                            : context.file,
+                                }).catch((error) => {
+                                    attempts.current.add(context.file);
+                                    throw error;
+                                });
+                                const url = URL.createObjectURL(context.file);
+                                urls.current.add(url);
+                                const attachment: GridAttachment = {
+                                    id: `attachment-${++nextId.current}`,
+                                    name: context.file.name,
+                                    size: context.file.size,
+                                    contentType: context.file.type,
+                                    url,
+                                    previewUrl: context.file.type.startsWith('image/') ? url : undefined,
+                                    target: context.target,
+                                };
+                                setAttachments((current) => [...current, attachment]);
+                                return attachment;
+                            },
                         }}
                     />
                 </div>
+            </div>
+            <h3>Attachments</h3>
+            <div data-grid-part="root" className="docs-grid">
+                <AttachmentList
+                    attachments={attachments}
+                    onRemove={async (attachment) => {
+                        setAttachments((current) => current.filter((item) => item.id !== attachment.id));
+                        if (attachment.url) {
+                            URL.revokeObjectURL(attachment.url);
+                            urls.current.delete(attachment.url);
+                        }
+                    }}
+                />
             </div>
             <details className="demo-upload-settings">
                 <summary>Drop settings</summary>
@@ -70,7 +121,16 @@ export default function UploadDemo() {
                             <option value="grid">Grid</option>
                         </select>
                     </label>
-                    <button type="button" onClick={() => setRevision((value) => value + 1)}>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            for (const url of urls.current) URL.revokeObjectURL(url);
+                            urls.current.clear();
+                            attempts.current = new WeakSet();
+                            setAttachments([]);
+                            setRevision((value) => value + 1);
+                        }}
+                    >
                         Reset uploads
                     </button>
                 </div>

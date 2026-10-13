@@ -14,6 +14,8 @@ npm install @nord-forge/the-grid
 
 The grid expects React 19 and React DOM 19 in your application. It adds no runtime dependencies of its own.
 
+The built-in theme and popups require Chrome/Edge 114+, Firefox 125+, or Safari 17+ (iOS 17+). See [browser support](/reference/browser-support/) for the feature requirements, test coverage, and proposed legacy target.
+
 ## Render your first grid
 
 Import the component, define your columns, and give the grid a data source. Import the default stylesheet once in your app.
@@ -26,7 +28,7 @@ Each row needs a stable identity. Return a string from `getRowId`; use a databas
 
 The default `virtual` layout renders rows and columns near the viewport. Its parent must have a bounded height, such as the `480px` height above. Without one, the grid cannot establish a useful scrolling viewport.
 
-Use the default virtual layout for production grids. The API also declares `layout="content"`, but the current implementation still uses the virtualizers, and `contentModeRowLimit` is not enforced yet.
+Use virtual layout for large datasets. For small grids that grow within a page or form, use [`layout="content"`](/guides/rows/#content-layout); its default limit is 1000 displayed body and pinned rows.
 
 ## Add interactions
 

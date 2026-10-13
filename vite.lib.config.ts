@@ -8,6 +8,8 @@ import { defineConfig } from 'vite';
  */
 export default defineConfig({
     build: {
+        // Keep the JavaScript target aligned with the documented browser/API requirements.
+        target: ['chrome114', 'edge114', 'firefox125', 'safari17'],
         outDir: 'dist',
         emptyOutDir: true,
         sourcemap: true,

@@ -52,9 +52,21 @@ it('routes API uploads through the real row and column models, permissions and t
     expect(upload).toHaveBeenCalledTimes(1);
     api.clearUploads();
     expect(api.getUploads()).toEqual([]);
+    options.canUpload = () => true;
+    options.upload = async () => {
+        throw new Error('Offline');
+    };
+    const failed = (await api.uploadFiles([file], { level: 'row', rowId: '1' }))[0]!;
+    store.applyTransaction({ remove: ['1'] });
+    expect(await api.retryUpload(failed.id)).toMatchObject({ status: 'rejected' });
+    store.applyTransaction({ add: { rows: [{ id: '1', name: 'Alex' }] } });
+    const rejectedId = api.getUploads()[0]!.id;
+    options.upload = async () => ({ id: 'retry-attachment' });
+    expect(await api.retryUpload(rejectedId)).toMatchObject({ status: 'uploaded', result: { id: 'retry-attachment' } });
     api.startEditing({ rowId: '1', colId: 'name' }, { openOnMount: true });
     expect(store.editSession?.openOnMount).toBe(true);
     store.destroy();
     expect(await api.uploadFiles([file], { level: 'grid' })).toEqual([]);
     expect(api.getUploads()).toEqual([]);
+    expect(await api.retryUpload(rejectedId)).toBeNull();
 });

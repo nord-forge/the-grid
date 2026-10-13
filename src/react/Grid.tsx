@@ -58,6 +58,7 @@ import { GridStore, type GridStoreOptions } from '../grid/store';
 import { FileUploadController, resolveUploadTarget } from '../grid/uploads';
 import type { LaidOutColumn } from '../virtual/horizontalLayout';
 import { HeaderRows, RowCells, rowLineStyle, type CellAttributes } from './ColumnCells';
+import { contentLayoutError } from './contentLayout';
 import { DefaultColumnChooser, DefaultFilterPanel, DefaultMenu, DefaultPopup, TextCellEditor } from './defaults';
 import { DefaultFilterEditor } from './FilterEditor';
 import { createGridApi } from './gridApi';
@@ -386,11 +387,13 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
     );
     const columnsVersion = store.columnsVersion;
     const specs = useMemo(() => store.columns.getColumnSpecs(), [store, columnsVersion]);
+    const contentMode = props.layout === 'content';
     const horizontal = useHorizontalVirtualizer({
         scrollRef,
         columns: specs,
         columnsVersion,
         retainedColIds,
+        renderAll: contentMode,
         ...(props.overscan?.columns !== undefined ? { overscan: props.overscan.columns } : {}),
     });
     const pinnedBottomRef = useRef<HTMLDivElement>(null);
@@ -439,16 +442,34 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
         pinnedTop.reduce((sum, row) => sum + pinnedHeight(row), 0);
     const rowsVersion = store.rowsVersion;
     // A new row source object whenever the displayed rows change; rowsVersion changes with it.
-    const source = store.rowSource;
+    const actualSource = store.rowSource;
+    const countKnown = store.rowModel.getRowCount() !== null;
+    const contentError = contentMode
+        ? contentLayoutError(
+              countKnown ? actualSource.count : null,
+              pinnedTop.length + pinnedBottom.length,
+              props.contentModeRowLimit,
+              store.rowModel.status.state === 'ready'
+          )
+        : null;
+    const emptySource = useMemo(
+        () => ({ count: 0, rowAt: () => undefined, indexOf: () => undefined, forEachKnown: () => {} }),
+        []
+    );
+    const source = contentMode && (contentError || !countKnown) ? emptySource : actualSource;
+    useEffect(() => {
+        if (contentError) console.error(`[the-grid] ${contentError}`);
+    }, [contentError]);
     const vertical = useVerticalVirtualizer<TData>({
         scrollRef,
         source,
-        sourceVersion: rowsVersion,
+        sourceVersion: contentMode && (contentError || !countKnown) ? emptySource : rowsVersion,
         estimatedRowHeight: typeof baseRowHeight === 'number' ? baseRowHeight : DEFAULT_ROW_HEIGHT,
         rowHeight,
         insetTop: headerHeight,
         insetBottom: pinnedBottomHeight,
         retainedIds,
+        renderAll: contentMode,
         ...(props.overscan?.rows !== undefined ? { overscan: props.overscan.rows } : {}),
     });
     const stickyRowsAt = (scrollTop: number) =>
@@ -461,6 +482,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
             rowBounds: (index) => vertical.layout.getRowBounds(index),
         });
     const { geometry } = useGridGeometry<TData>({
+        contentMode,
         scrollRef,
         vertical,
         horizontal,
@@ -628,6 +650,10 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
     // Server rows: ask the model for the blocks the viewport mounts (the main run; a retained focused or
     // editing row far away stays loaded on its own). Runs after every render; the model skips loaded blocks.
     useEffect(() => {
+        if (contentMode && store.rowModel.getRowCount() === null && !contentError) {
+            store.rowModel.ensureRange(0, 0);
+            return;
+        }
         const { runs, firstVisible } = vertical.window;
         const run =
             runs.find((candidate) => candidate.start <= firstVisible && candidate.end >= firstVisible) ?? runs[0];
@@ -2010,6 +2036,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                 if (target) void uploads.upload(Array.from(event.dataTransfer.files), target);
             }}
             data-density={density}
+            data-layout={props.layout ?? 'virtual'}
             data-color-scheme={props.colorScheme ?? 'light'}
             data-scrolled-left={scrolledLeft || undefined}
             data-scrolled-right={scrolledRight || undefined}
@@ -2018,7 +2045,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                 display: 'flex',
                 flexDirection: 'column',
                 minHeight: 0,
-                height: props.layout === 'content' ? undefined : '100%',
+                height: contentMode ? 'auto' : '100%',
             }}
         >
             {props.uploads && (
@@ -2041,7 +2068,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                 data-grid-part="viewport"
                 data-dragging={store.isDragging || undefined}
                 data-menu-open={menuProps ? true : undefined}
-                style={{ flex: '1 1 auto', minHeight: 0, overflow: 'auto', outline: 'none' }}
+                style={{ flex: contentMode ? 'none' : '1 1 auto', minHeight: 0, overflow: 'auto', outline: 'none' }}
                 onKeyDown={onKeyDown}
                 onFocus={onFocus}
                 onMouseDownCapture={onPointerDownCapture}
@@ -2138,7 +2165,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                         }}
                         renderHeaderCell={renderHeaderCell}
                     />
-                    {pinnedTop.length > 0 ? (
+                    {!contentError && pinnedTop.length > 0 ? (
                         <div data-grid-part="pinned-top">{pinnedTop.map((row) => renderPinnedRow(row))}</div>
                     ) : null}
                     {stuckRows.length > 0 ? (
@@ -2167,7 +2194,12 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                         </div>
                     ) : null}
                 </div>
-                {overlayContent !== null ? (
+                {contentError ? (
+                    <div role="alert" data-grid-part="overlay">
+                        {contentError}
+                    </div>
+                ) : null}
+                {!contentError && overlayContent !== null ? (
                     <div
                         data-grid-part="overlay"
                         data-overlay={overlay?.kind}
@@ -2196,7 +2228,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                         }
                     />
                 </div>
-                {pinnedBottom.length > 0 ? (
+                {!contentError && pinnedBottom.length > 0 ? (
                     <div
                         role="rowgroup"
                         data-grid-part="pinned-bottom"

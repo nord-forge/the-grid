@@ -117,6 +117,18 @@ export function UploadPanel<TData>({
                                     Cancel
                                 </button>
                             )}
+                            {['failed', 'cancelled', 'rejected'].includes(task.status) && (
+                                <button
+                                    type="button"
+                                    aria-label={`Retry upload ${task.file.name}`}
+                                    disabled={!controller.canUpload(task.target)}
+                                    onClick={() => {
+                                        void controller.retry(task.id);
+                                    }}
+                                >
+                                    Retry
+                                </button>
+                            )}
                         </li>
                     ))}
                 </ul>

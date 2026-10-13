@@ -49,6 +49,31 @@ function viewportOffset(layout: VerticalLayout<Row>, projection: LocalProjection
 }
 
 describe('window', () => {
+    it('content layout mounts every row without spacers or scaled coordinates and switches back', () => {
+        const layout = layoutFor(buildLocalProjection({ rows: rows(100) }), { rowHeight: 32, maxPhysicalHeight: 1000 });
+        expect(layout.mapping.scaled).toBe(true);
+        layout.setRenderAll(true);
+        expect(layout.getWindow().items).toEqual([{ type: 'run', start: 0, end: 99 }]);
+        expect(layout.getWindow().totalHeight).toBe(3200);
+        expect(layout.mapping.scaled).toBe(false);
+        layout.setRenderAll(false);
+        expect(layout.mapping.scaled).toBe(true);
+        expect(layout.getWindow().items.some((item) => item.type === 'spacer')).toBe(true);
+    });
+    it('content layout accounts for measured row heights and source changes', () => {
+        const layout = layoutFor(buildLocalProjection({ rows: rows(3) }), { rowHeight: 'measure' });
+        layout.setRenderAll(true);
+        layout.recordHeights([
+            { id: '0', height: 80 },
+            { id: '1', height: 120 },
+            { id: '2', height: 40 },
+        ]);
+        expect(layout.getWindow().totalHeight).toBe(240);
+        expect(layout.getRowBounds(2)).toEqual({ top: 200, height: 40 });
+        layout.setSource(localRowSource(buildLocalProjection({ rows: rows(0) })));
+        expect(layout.getWindow().items).toEqual([]);
+        expect(layout.getWindow().totalHeight).toBe(0);
+    });
     it('mounts only the viewport plus overscan for 100,000 rows', () => {
         const layout = layoutFor(buildLocalProjection({ rows: rows(100_000) }), { overscan: 320 });
         layout.setViewport(1_000_000, 640);
