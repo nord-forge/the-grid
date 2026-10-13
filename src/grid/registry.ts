@@ -116,7 +116,7 @@ export function createResolver<TData>(
     const lookup = <K extends RegistryKind>(kind: K, key: string): RegistryEntry<TData, K> | undefined => {
         const entries = registry[kind] as Record<string, RegistryEntry<TData, K>> | undefined;
 
-        if (!entries || !Object.hasOwn(entries, key)) {
+        if (!entries || !Object.prototype.hasOwnProperty.call(entries, key)) {
             return undefined;
         }
 

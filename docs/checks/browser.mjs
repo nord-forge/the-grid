@@ -48,7 +48,23 @@ async function open(page, route = 'examples/') {
     assert([200, 304].includes(response.status()), `Unexpected HTTP ${response.status()}`);
     // Starlight initializes search during an idle callback after load. Let that import finish before
     // a test navigates again, so navigation cannot cancel it and produce a teardown rejection.
-    await page.locator('site-search .pagefind-ui__search-input').waitFor({ state: 'attached' });
+    try {
+        await page.locator('site-search .pagefind-ui__search-input').waitFor({ state: 'attached' });
+    } catch (error) {
+        console.error(
+            'Search initialization state',
+            await page.evaluate(() => ({
+                ready: document.readyState,
+                defined: Boolean(customElements.get('site-search')),
+                disabled: document.querySelector('site-search button[data-open-modal]')?.disabled,
+                resources: performance
+                    .getEntriesByType('resource')
+                    .map((entry) => entry.name)
+                    .filter((name) => /Search|ui-core|pagefind/.test(name)),
+            }))
+        );
+        throw error;
+    }
     if (route === 'guides/editing/') await page.getByRole('grid', { name: 'Built-in editors example' }).waitFor();
     else if (route === 'guides/rows/') await page.getByRole('grid', { name: 'Content layout example' }).waitFor();
     else await cell(page, 'team').waitFor();
@@ -785,7 +801,13 @@ try {
             mimeType: 'text/plain',
             buffer: Buffer.from('Retry attachment contents'),
         });
-        await activity.getByRole('button', { name: 'Retry upload fail.txt', exact: true }).waitFor();
+        try {
+            await activity.getByRole('button', { name: 'Retry upload fail.txt', exact: true }).waitFor();
+        } catch (error) {
+            console.error('Retry demo state', await page.locator('[data-grid-part="upload-panel"]').textContent());
+            await page.screenshot({ path: `${artifacts}/retry-failure.png` });
+            throw error;
+        }
         await activity.getByRole('button', { name: 'Retry upload fail.txt', exact: true }).click();
         await page.getByRole('link', { name: 'Download fail.txt', exact: true }).waitFor();
         assert.equal(await activity.count(), 1);

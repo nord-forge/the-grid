@@ -1,6 +1,6 @@
 ---
 title: Browser support
-description: Browser requirements, compatibility checks, and the proposed legacy build.
+description: Browser requirements, compatibility checks, and the opt-in legacy build.
 ---
 
 The default stylesheet and built-in popup components use modern browser features. The following are the minimum versions implied by those features and the library's explicit JavaScript build target:
@@ -21,26 +21,25 @@ CI checks isolated **current Chromium, Firefox, and WebKit** with Playwright. Th
 | --- | --- | --- | --- | --- |
 | `:where()` | 88+ | 78+ | 14+ | Zero-specificity theme selectors |
 | `@layer` | 99+ | 97+ | 15.4+ | Application styles override the default theme |
-| `:has()` | 105+ | 121+ | 15.4+ | Checkbox header alignment and full-width row styling |
 | `color-mix()` | 111+ | 113+ | 16.2+ | Accent-based selection and focus colors |
 | Popover API | 114+ | 125+ | 17+ | Built-in selects, menus, filters, column chooser, and popup editors |
 
-Versions come from [MDN Browser Compatibility Data](https://github.com/mdn/browser-compat-data). See MDN's references for [`:where()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:where), [`@layer`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@layer), [`:has()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:has), [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/color_value/color-mix), and [`showPopover()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/showPopover).
+Versions come from [MDN Browser Compatibility Data](https://github.com/mdn/browser-compat-data). See MDN's references for [`:where()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Selectors/:where), [`@layer`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/At-rules/@layer), [`color-mix()`](https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Values/color_value/color-mix), and [`showPopover()`](https://developer.mozilla.org/en-US/docs/Web/API/HTMLElement/showPopover). The grid no longer relies on `:has()`; explicit public states handle those styles.
 
 Removing `:where()` alone would increase selector specificity and would not make older browsers work. Browsers without cascade layers ignore the entire default stylesheet. Browsers without popovers cannot place the built-in popup components correctly.
 
 Custom `renderMenu`, `renderPopup`, `renderFilterPanel`, and `renderColumnChooser` components can replace those hosts. Select editors also need a compatible replacement. Those hooks alone do not address the stylesheet and JavaScript requirements.
 
-## Proposed legacy target
+## Legacy compatibility target (unreleased)
 
-The requested target is **Chrome/Edge 88+, Firefox 85+, Safari 14+**. A legacy build is feasible without replacing the grid's row models, API, or virtualization. It is **not shipped or supported yet**; do not import an assumed `/legacy` entry point.
+The checkout now has opt-in `@nord-forge/the-grid/legacy` and `@nord-forge/the-grid/legacy/styles.css` entries. They are planned for the next npm release and are not present in the published `0.2.0` package. See the [legacy guide](/guides/legacy-browsers/) for imports, theming, and popup behavior.
 
-The work is concentrated in the theme, popup hosts, and build:
+| Browser | Compatibility target | Verification |
+| --- | --- | --- |
+| Chrome / Edge | 88+ | Build target and missing-API tests; historical releases unverified |
+| Firefox | 85+ | Build target and missing-API tests; historical releases unverified |
+| Safari | 14+ | Build target and missing-API tests; historical releases and real iOS devices unverified |
 
-- Generate a separate stylesheet without cascade layers. Keep `:where()` because all three target browsers support it. Replace `:has()` with explicit state attributes and give accent colors stable fallbacks.
-- Add compatible overflow, focus, form-control, and spacing styles. Safari 14.0 lacks flexbox `gap`; its layout needs spacing fallbacks too.
-- Replace newer helpers such as `Array.at()`, `Array.findLast()`, and `Object.hasOwn()`, and compile JavaScript for the older target. Syntax transpilation alone does not polyfill these methods.
-- Provide a tested popup host for browsers without the Popover API. Positioning and clipping need attention: the standard package intentionally avoids absolute/fixed positioning, while native popovers provide the browser's top layer.
-- Exercise the actual historical browsers before claiming support. Current Playwright engines with missing APIs disabled can check fallback behavior, but cannot reproduce all older CSS and layout behavior.
+The legacy stylesheet is generated from the same source, keeps `:where()`, removes layers, and supplies compatible color, focus, spacing, clipping, and logical-property declarations. Shared code replaces newer JavaScript helpers instead of installing global polyfills. The separately compiled JavaScript entry provides fixed portals only for transient popup UI when native popovers are unavailable.
 
-An opt-in export in the same package would keep the same React components and TypeScript API while letting modern applications retain the layered theme and native popovers. Internet Explorer is outside this proposed target.
+CI tests the actual compiled bundle in current engines with the newer APIs disabled. This verifies fallback behavior but does not emulate historical CSS or engine bugs. Actual historical browser testing remains the next compatibility gate. Internet Explorer is outside this target.

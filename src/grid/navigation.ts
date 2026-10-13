@@ -328,7 +328,10 @@ function nextFocusable(index: number, focusable: FocusableColumns): number | nul
 }
 
 function previousFocusable(index: number, focusable: FocusableColumns): number | null {
-    return focusable.indexes.findLast((candidate) => candidate < index) ?? null;
+    for (let i = focusable.indexes.length - 1; i >= 0; i--) {
+        if (focusable.indexes[i]! < index) return focusable.indexes[i]!;
+    }
+    return null;
 }
 
 function clamp(value: number, min: number, max: number): number {

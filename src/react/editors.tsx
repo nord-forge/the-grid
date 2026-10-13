@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useMemo, useRef, useState, type ReactNode } fro
 
 import type { CellEditorComponent } from '../contract';
 import { popupPlacement } from './popupPlacement';
+import { PopupSurface, showNativePopover, hideNativePopover } from './popupSurface';
 
 export type SelectEditorOption = string | number | { value: string | number; label: string; disabled?: boolean };
 export type SelectEditorOptions = { values?: readonly SelectEditorOption[]; icon?: ReactNode };
@@ -91,7 +92,7 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
         useLayoutEffect(() => {
             const element = popup.current;
             if (!open || !element) return;
-            element.showPopover?.();
+            showNativePopover(element);
             const dismiss = (event: PointerEvent) => {
                 if (!element.contains(event.target as Node) && !trigger.current?.contains(event.target as Node))
                     setOpen(false);
@@ -99,12 +100,12 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
             document.addEventListener('pointerdown', dismiss, true);
             return () => {
                 document.removeEventListener('pointerdown', dismiss, true);
-                if (element.isConnected && element.matches(':popover-open')) element.hidePopover();
+                hideNativePopover(element);
             };
         }, [open]);
         useLayoutEffect(() => {
             const element = popup.current;
-            if (!open || !element) return;
+            if (!open || !element || element.dataset.popupMode === 'portal') return;
             const place = () => {
                 const placement = popupPlacement(
                     anchor,
@@ -176,7 +177,7 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
                             event.preventDefault();
                             event.stopPropagation();
                             setOpen(true);
-                            highlight((event.key === 'Home' ? enabled[0] : enabled.at(-1)) ?? -1);
+                            highlight((event.key === 'Home' ? enabled[0] : enabled[enabled.length - 1]) ?? -1);
                         } else if (event.key === ' ' || (event.key === 'Enter' && open)) {
                             event.preventDefault();
                             event.stopPropagation();
@@ -203,10 +204,11 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
                     )}
                 </button>
                 {open && (
-                    <div
-                        ref={popup}
+                    <PopupSurface
+                        elementRef={popup}
+                        anchor={anchor}
+                        anchorElement={trigger}
                         id={id}
-                        popover="manual"
                         role="listbox"
                         aria-label={column.headerName}
                         data-grid-part="select-listbox"
@@ -245,7 +247,7 @@ export function createSelectCellEditor<TData = any>(options: SelectEditorOptions
                             </button>
                         ))}
                         {choices.length === 0 && <span>No options available</span>}
-                    </div>
+                    </PopupSurface>
                 )}
             </span>
         );

@@ -27,6 +27,9 @@ jobs:
       - run: npm run format:check
       - run: npm run check:ci
       - run: npx playwright install --with-deps chromium firefox webkit
+      - run: npm run test:legacy
+        env:
+          GRID_BROWSER_ARTIFACTS: ${{ runner.temp }}/the-grid-browser-review
       - run: npm run preview --prefix docs -- --background
       - run: npm run docs:browser:all
         env:

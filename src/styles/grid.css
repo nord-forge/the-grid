@@ -201,8 +201,7 @@
         user-select: none;
     }
 
-    :where([data-grid-part='root'])
-        :where([data-grid-part='header-content']:has(> [data-grid-part='header-checkbox'])) {
+    :where([data-grid-part='root']) :where([data-grid-part='header-content'][data-selection-header]) {
         justify-content: center;
         padding-inline: 0;
     }
@@ -261,11 +260,7 @@
     }
 
     :where([data-grid-part='root'])
-        :where(
-            [data-grid-part='header-cell']:has(
-                + [data-grid-part='header-cell'] [data-grid-part='resize-handle'][data-edge='start']:hover
-            )
-        )
+        :where([data-grid-part='header-cell'][data-resize-hover])
         :where([data-grid-part='resize-handle'][data-edge='end']) {
         background: linear-gradient(to left, var(--the-grid-accent) 2px, transparent 2px);
     }
@@ -363,7 +358,7 @@
      * A full-width cell is sticky, so it paints above the next row's cells. It stops 1px short and the row
      * draws the bottom line, so a ring or range edge in the next row reaches that line like any other.
      */
-    :where([data-grid-part='root']) :where([data-grid-part='row']:has(> [data-grid-part='full-width-row'])) {
+    :where([data-grid-part='root']) :where([data-grid-part='row'][data-full-width]) {
         --_grid-full-width-line: inset 0 -1px 0 0 var(--_grid-row-bottom-line, var(--the-grid-row-border-color));
     }
 

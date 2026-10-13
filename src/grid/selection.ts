@@ -100,7 +100,7 @@ export function select(
     const selectable = requested.filter((id) => isSelectable(id));
 
     if (options.mode === 'single') {
-        const last = selectable.at(-1);
+        const last = selectable[selectable.length - 1];
 
         if (last === undefined) {
             return selection;

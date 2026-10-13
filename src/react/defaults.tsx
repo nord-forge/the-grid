@@ -17,6 +17,7 @@ import type {
     GridPopupRenderProps,
     ResolvedMenuItem,
 } from '../contract';
+import { PopupSurface, showNativePopover, hideNativePopover } from './popupSurface';
 
 /** A plain text input. A typed start key replaces the value; Enter, F2 or a double click keep it. */
 export const TextCellEditor: CellEditorComponent<unknown> = ({ draft, setDraft, startKey, error, errorId, column }) => {
@@ -71,7 +72,7 @@ function usePopover(onDismiss: () => void, options: { closeOnEscape: boolean }) 
         if (!element) {
             return;
         }
-        element.showPopover?.();
+        showNativePopover(element);
         const onPointerDown = (event: PointerEvent) => {
             if (!element.contains(event.target as Node)) {
                 dismiss.current();
@@ -90,9 +91,7 @@ function usePopover(onDismiss: () => void, options: { closeOnEscape: boolean }) 
         return () => {
             document.removeEventListener('pointerdown', onPointerDown, true);
             document.removeEventListener('keydown', onKeyDown, true);
-            if (element.isConnected && element.matches(':popover-open')) {
-                element.hidePopover();
-            }
+            hideNativePopover(element);
         };
         // The options are fixed per component.
     }, []);
@@ -112,15 +111,15 @@ export function DefaultPopup({ anchor, children, onDismiss }: GridPopupRenderPro
     }, [ref]);
 
     return (
-        <div
-            ref={ref}
-            popover="manual"
+        <PopupSurface
+            elementRef={ref}
+            anchor={anchor}
             data-grid-part="popup"
             data-grid-editor-popup=""
             style={popoverInset(anchor, true)}
         >
             {children}
-        </div>
+        </PopupSurface>
     );
 }
 
@@ -148,9 +147,9 @@ export function DefaultMenu({ anchor, items, trigger, onSelect, onClose }: GridM
     };
 
     return (
-        <div
-            ref={ref}
-            popover="manual"
+        <PopupSurface
+            elementRef={ref}
+            anchor={anchor}
             role="menu"
             tabIndex={-1}
             data-grid-part="menu"
@@ -158,7 +157,7 @@ export function DefaultMenu({ anchor, items, trigger, onSelect, onClose }: GridM
             onKeyDown={onKeyDown}
         >
             <MenuItems items={items} onSelect={onSelect} />
-        </div>
+        </PopupSurface>
     );
 }
 
@@ -250,16 +249,16 @@ export function DefaultFilterPanel<TData>({ anchor, children, onClose, column }:
     }, [ref]);
 
     return (
-        <div
-            ref={ref}
-            popover="manual"
+        <PopupSurface
+            elementRef={ref}
+            anchor={anchor}
             role="dialog"
             aria-label={`Filter ${column.headerName}`}
             data-grid-part="filter-panel"
             style={popoverInset(anchor, true)}
         >
             {children}
-        </div>
+        </PopupSurface>
     );
 }
 
@@ -276,9 +275,9 @@ export function DefaultColumnChooser<TData>({
     }, [ref]);
 
     return (
-        <div
-            ref={ref}
-            popover="manual"
+        <PopupSurface
+            elementRef={ref}
+            anchor={anchor}
             role="dialog"
             aria-label="Choose columns"
             data-grid-part="column-chooser"
@@ -295,6 +294,6 @@ export function DefaultColumnChooser<TData>({
                     {column.label}
                 </label>
             ))}
-        </div>
+        </PopupSurface>
     );
 }

@@ -62,6 +62,7 @@ import { contentLayoutError } from './contentLayout';
 import { DefaultColumnChooser, DefaultFilterPanel, DefaultMenu, DefaultPopup, TextCellEditor } from './defaults';
 import { DefaultFilterEditor } from './FilterEditor';
 import { createGridApi } from './gridApi';
+import { GridRootContext } from './popupSurface';
 import { UploadPanel } from './UploadPanel';
 import { useGridGeometry } from './useGridGeometry';
 import { useHorizontalVirtualizer } from './useHorizontalVirtualizer';
@@ -246,6 +247,7 @@ const MemoRow = memo(
 );
 
 export function Grid<TData>(props: GridProps<TData>): ReactNode {
+    const rootRef = useRef<HTMLDivElement>(null);
     const gridId = useId().replace(/:/g, '');
     const scrollRef = useRef<HTMLDivElement>(null);
     const [quickFilter, setQuickFilter] = useState<string | undefined>(undefined);
@@ -1573,7 +1575,8 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
         } else if (column.def.field || column.def.valueGetter) {
             label = column.formatValue(row, column.getValue(row));
         } else if (props.data.type === 'local' && props.data.getDataPath) {
-            label = props.data.getDataPath(row.data).at(-1) ?? '';
+            const path = props.data.getDataPath(row.data);
+            label = path[path.length - 1] ?? '';
         }
         const childCount = isGroup ? row.childCount : null;
         const toggle = () => toggleRow(row.id);
@@ -1659,6 +1662,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
             'aria-selected': selectionMode !== 'none' ? selected : undefined,
             'data-grid-part': 'row',
             'data-row-kind': row.kind,
+            'data-full-width': store.isFullWidth(row) || undefined,
             'data-upload-target': (uploadTarget?.level === 'row' && uploadTarget.rowId === row.id) || undefined,
             'data-first-row': index === 0 || undefined,
             'data-selected': selected || undefined,
@@ -1750,6 +1754,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
                     data-row-id={row.id}
                     data-row-kind={row.kind}
                     data-row-pinned={row.section}
+                    data-full-width=""
                     className={Array.isArray(rowClass) ? rowClass.join(' ') : rowClass}
                     style={{ height: pinnedHeight(row), ...rowLineStyle(horizontal.window), ...props.rowStyle?.(row) }}
                 >
@@ -1829,7 +1834,7 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
             const state = store.headerSelectionState();
 
             return (
-                <div data-grid-part="header-content">
+                <div data-grid-part="header-content" data-selection-header="">
                     <input
                         // Mixed while only some rows are selected; a click then selects them all.
                         ref={(input) => {
@@ -2011,253 +2016,261 @@ export function Grid<TData>(props: GridProps<TData>): ReactNode {
     };
     const isFileDrag = (event: DragEvent) => Array.from(event.dataTransfer.types).includes('Files');
     return (
-        <div
-            className={props.className}
-            data-grid-part="root"
-            data-upload-target={uploadTarget?.level === 'grid' || undefined}
-            onDragOverCapture={(event) => {
-                if (!props.uploads || !isFileDrag(event)) return;
-                event.preventDefault();
-                event.stopPropagation();
-                const target = fileDropTarget(event.target);
-                const allowed = target !== null && uploads.canUpload(target);
-                event.dataTransfer.dropEffect = allowed ? 'copy' : 'none';
-                setUploadTarget(allowed ? target : null);
-            }}
-            onDragLeaveCapture={(event) => {
-                if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setUploadTarget(null);
-            }}
-            onDropCapture={(event) => {
-                if (!props.uploads || !isFileDrag(event)) return;
-                event.preventDefault();
-                event.stopPropagation();
-                setUploadTarget(null);
-                const target = fileDropTarget(event.target);
-                if (target) void uploads.upload(Array.from(event.dataTransfer.files), target);
-            }}
-            data-density={density}
-            data-layout={props.layout ?? 'virtual'}
-            data-color-scheme={props.colorScheme ?? 'light'}
-            data-scrolled-left={scrolledLeft || undefined}
-            data-scrolled-right={scrolledRight || undefined}
-            data-scrolled-top={scrolledTop || undefined}
-            style={{
-                display: 'flex',
-                flexDirection: 'column',
-                minHeight: 0,
-                height: contentMode ? 'auto' : '100%',
-            }}
-        >
-            {props.uploads && (
-                <UploadPanel
-                    controller={uploads}
-                    options={props.uploads}
-                    focused={store.focusedCell}
-                    tasks={uploadTasks}
-                />
-            )}
+        <GridRootContext.Provider value={rootRef}>
             <div
-                ref={scrollRef}
-                role="grid"
-                tabIndex={0}
-                aria-label={props.ariaLabel}
-                aria-rowcount={(store.rowModel.getRowCount() ?? -2) + 1}
-                aria-colcount={totalColumns}
-                aria-multiselectable={selectionMode === 'multiple' || props.enableRanges ? true : undefined}
-                aria-activedescendant={focused ? cellDomId(gridId, focused) : undefined}
-                data-grid-part="viewport"
-                data-dragging={store.isDragging || undefined}
-                data-menu-open={menuProps ? true : undefined}
-                style={{ flex: contentMode ? 'none' : '1 1 auto', minHeight: 0, overflow: 'auto', outline: 'none' }}
-                onKeyDown={onKeyDown}
-                onFocus={onFocus}
-                onMouseDownCapture={onPointerDownCapture}
-                onPointerDownCapture={onPointerDownCapture}
-                onPointerDown={onPointerDown}
-                onClick={onClick}
-                onDoubleClick={onDoubleClick}
-                onContextMenu={onContextMenu}
-                onCopy={onCopy}
-                onCut={onCut}
-                onPaste={onPaste}
-                onDragOver={onRowDragOver}
-                onDrop={(event) => {
-                    if (store.rowDrag) {
-                        event.preventDefault();
-                        store.endRowDrag(true);
-                    }
+                ref={rootRef}
+                className={props.className}
+                data-grid-part="root"
+                data-upload-target={uploadTarget?.level === 'grid' || undefined}
+                onDragOverCapture={(event) => {
+                    if (!props.uploads || !isFileDrag(event)) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const target = fileDropTarget(event.target);
+                    const allowed = target !== null && uploads.canUpload(target);
+                    event.dataTransfer.dropEffect = allowed ? 'copy' : 'none';
+                    setUploadTarget(allowed ? target : null);
+                }}
+                onDragLeaveCapture={(event) => {
+                    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setUploadTarget(null);
+                }}
+                onDropCapture={(event) => {
+                    if (!props.uploads || !isFileDrag(event)) return;
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setUploadTarget(null);
+                    const target = fileDropTarget(event.target);
+                    if (target) void uploads.upload(Array.from(event.dataTransfer.files), target);
+                }}
+                data-density={density}
+                data-layout={props.layout ?? 'virtual'}
+                data-color-scheme={props.colorScheme ?? 'light'}
+                data-scrolled-left={scrolledLeft || undefined}
+                data-scrolled-right={scrolledRight || undefined}
+                data-scrolled-top={scrolledTop || undefined}
+                style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    minHeight: 0,
+                    height: contentMode ? 'auto' : '100%',
                 }}
             >
+                {props.uploads && (
+                    <UploadPanel
+                        controller={uploads}
+                        options={props.uploads}
+                        focused={store.focusedCell}
+                        tasks={uploadTasks}
+                    />
+                )}
                 <div
-                    role="rowgroup"
-                    data-grid-part="header"
-                    style={{
-                        position: 'sticky',
-                        top: 0,
-                        zIndex: 2,
-                        width: horizontal.window.totalWidth,
-                        minWidth: '100%',
+                    ref={scrollRef}
+                    role="grid"
+                    tabIndex={0}
+                    aria-label={props.ariaLabel}
+                    aria-rowcount={(store.rowModel.getRowCount() ?? -2) + 1}
+                    aria-colcount={totalColumns}
+                    aria-multiselectable={selectionMode === 'multiple' || props.enableRanges ? true : undefined}
+                    aria-activedescendant={focused ? cellDomId(gridId, focused) : undefined}
+                    data-grid-part="viewport"
+                    data-dragging={store.isDragging || undefined}
+                    data-menu-open={menuProps ? true : undefined}
+                    style={{ flex: contentMode ? 'none' : '1 1 auto', minHeight: 0, overflow: 'auto', outline: 'none' }}
+                    onKeyDown={onKeyDown}
+                    onFocus={onFocus}
+                    onMouseDownCapture={onPointerDownCapture}
+                    onPointerDownCapture={onPointerDownCapture}
+                    onPointerDown={onPointerDown}
+                    onClick={onClick}
+                    onDoubleClick={onDoubleClick}
+                    onContextMenu={onContextMenu}
+                    onCopy={onCopy}
+                    onCut={onCut}
+                    onPaste={onPaste}
+                    onDragOver={onRowDragOver}
+                    onDrop={(event) => {
+                        if (store.rowDrag) {
+                            event.preventDefault();
+                            store.endRowDrag(true);
+                        }
                     }}
                 >
-                    <HeaderRows
-                        horizontal={horizontal}
-                        rowHeight={headerRowHeight}
-                        headerCellAttributes={(column) => {
-                            const sort = store.columns.getSortModel().find((item) => item.colId === column.colId)?.sort;
-                            const headerClass = store.columns.getResolved(column.colId)?.def.headerClass;
-
-                            return {
-                                'role': 'columnheader',
-                                'className': headerClass,
-                                'aria-sort': sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : undefined,
-                            };
-                        }}
-                        renderGroupCell={(cell) => {
-                            const expandable = cell.groupId ? store.columns.isGroupExpandable(cell.groupId) : false;
-                            const open = cell.groupId
-                                ? store.columns.getColumnGroupState().find((entry) => entry.groupId === cell.groupId)
-                                      ?.open
-                                : false;
-
-                            const group = cell.groupId ? store.columns.getGroup(cell.groupId) : undefined;
-                            const Header = typeof group?.headerRenderer === 'function' ? group.headerRenderer : null;
-                            const displayName = cell.groupId ? store.columns.getGroupLabel(cell.groupId) : '';
-                            return (
-                                <div data-grid-part="group-header-content" className={group?.headerClass}>
-                                    <span
-                                        data-grid-part="group-header-label"
-                                        style={{ position: 'sticky', left: horizontal.window.leftWidth }}
-                                    >
-                                        {Header ? (
-                                            <Header
-                                                column={null}
-                                                groupId={cell.groupId}
-                                                displayName={displayName}
-                                                api={api}
-                                                params={group?.headerRendererParams ?? {}}
-                                                sort={null}
-                                                toggleSort={() => undefined}
-                                            />
-                                        ) : (
-                                            displayName
-                                        )}
-                                        {expandable ? (
-                                            <button
-                                                type="button"
-                                                data-grid-part="group-toggle"
-                                                aria-expanded={open}
-                                                aria-label={`${open ? 'Collapse' : 'Expand'} ${store.columns.getGroupLabel(cell.groupId!)}`}
-                                                onClick={() =>
-                                                    store.setColumnGroupState(
-                                                        [{ groupId: cell.groupId!, open: !open }],
-                                                        'user'
-                                                    )
-                                                }
-                                            >
-                                                {open
-                                                    ? (props.icons?.columnGroupOpen ?? '−')
-                                                    : (props.icons?.columnGroupClosed ?? '+')}
-                                            </button>
-                                        ) : null}
-                                    </span>
-                                </div>
-                            );
-                        }}
-                        renderHeaderCell={renderHeaderCell}
-                    />
-                    {!contentError && pinnedTop.length > 0 ? (
-                        <div data-grid-part="pinned-top">{pinnedTop.map((row) => renderPinnedRow(row))}</div>
-                    ) : null}
-                    {stuckRows.length > 0 ? (
-                        // No height of its own, so nothing below moves: the stuck rows hang over the body, and
-                        // a row being pushed out is clipped at the header instead of covering it.
-                        <div
-                            data-grid-part="sticky-rows"
-                            style={{ height: 0, clipPath: 'inset(0 -100vw -100vh -100vw)' }}
-                        >
-                            {stuckRows.map((stuck, position) => {
-                                const row = source.rowAt(stuck.index);
-                                const previous = stuckRows[position - 1];
-                                const above = previous ? previous.top + previous.height : 0;
-
-                                return row ? (
-                                    <Fragment key={stuck.id}>
-                                        {renderRow(row, stuck.index, {
-                                            'data-row-id': row.id,
-                                            'data-row-index': stuck.index,
-                                            'ref': undefined,
-                                            'style': { height: stuck.height, marginTop: stuck.top - above },
-                                        })}
-                                    </Fragment>
-                                ) : null;
-                            })}
-                        </div>
-                    ) : null}
-                </div>
-                {contentError ? (
-                    <div role="alert" data-grid-part="overlay">
-                        {contentError}
-                    </div>
-                ) : null}
-                {!contentError && overlayContent !== null ? (
-                    <div
-                        data-grid-part="overlay"
-                        data-overlay={overlay?.kind}
-                        data-overlay-reason={overlay?.kind === 'empty' ? overlay.reason : undefined}
-                        role="status"
-                        style={{ position: 'sticky', left: 0, width: '100%' }}
-                    >
-                        {overlayContent}
-                    </div>
-                ) : null}
-                <div role="rowgroup" data-grid-part="body">
-                    <VirtualRows
-                        virtualizer={vertical}
-                        renderRow={(row, index, rowProps) =>
-                            // A stuck row is drawn below the header; its own place keeps only its height.
-                            stuckIds.has(row.id) ? (
-                                <div
-                                    {...rowProps}
-                                    aria-hidden="true"
-                                    data-grid-part="row-spacer"
-                                    style={{ height: vertical.layout.getRowBounds(index)?.height }}
-                                />
-                            ) : (
-                                renderRow(row, index, rowProps)
-                            )
-                        }
-                    />
-                </div>
-                {!contentError && pinnedBottom.length > 0 ? (
                     <div
                         role="rowgroup"
-                        data-grid-part="pinned-bottom"
-                        ref={pinnedBottomRef}
+                        data-grid-part="header"
                         style={{
                             position: 'sticky',
-                            bottom: 0,
-                            maxHeight: props.pinnedBottomMaxHeight,
-                            overflowY: props.pinnedBottomMaxHeight !== undefined ? 'auto' : undefined,
-                            overflowX: props.pinnedBottomMaxHeight !== undefined ? 'hidden' : undefined,
-                            left: props.pinnedBottomMaxHeight !== undefined ? 0 : undefined,
-                            overscrollBehaviorY: 'contain',
+                            top: 0,
                             zIndex: 2,
-                            width:
-                                props.pinnedBottomMaxHeight !== undefined
-                                    ? (scrollRef.current?.clientWidth ?? '100%')
-                                    : horizontal.window.totalWidth,
+                            width: horizontal.window.totalWidth,
                             minWidth: '100%',
                         }}
                     >
-                        {pinnedBottom.map((row) => renderPinnedRow(row))}
+                        <HeaderRows
+                            horizontal={horizontal}
+                            rowHeight={headerRowHeight}
+                            headerCellAttributes={(column) => {
+                                const sort = store.columns
+                                    .getSortModel()
+                                    .find((item) => item.colId === column.colId)?.sort;
+                                const headerClass = store.columns.getResolved(column.colId)?.def.headerClass;
+
+                                return {
+                                    'role': 'columnheader',
+                                    'className': headerClass,
+                                    'aria-sort':
+                                        sort === 'asc' ? 'ascending' : sort === 'desc' ? 'descending' : undefined,
+                                };
+                            }}
+                            renderGroupCell={(cell) => {
+                                const expandable = cell.groupId ? store.columns.isGroupExpandable(cell.groupId) : false;
+                                const open = cell.groupId
+                                    ? store.columns
+                                          .getColumnGroupState()
+                                          .find((entry) => entry.groupId === cell.groupId)?.open
+                                    : false;
+
+                                const group = cell.groupId ? store.columns.getGroup(cell.groupId) : undefined;
+                                const Header =
+                                    typeof group?.headerRenderer === 'function' ? group.headerRenderer : null;
+                                const displayName = cell.groupId ? store.columns.getGroupLabel(cell.groupId) : '';
+                                return (
+                                    <div data-grid-part="group-header-content" className={group?.headerClass}>
+                                        <span
+                                            data-grid-part="group-header-label"
+                                            style={{ position: 'sticky', left: horizontal.window.leftWidth }}
+                                        >
+                                            {Header ? (
+                                                <Header
+                                                    column={null}
+                                                    groupId={cell.groupId}
+                                                    displayName={displayName}
+                                                    api={api}
+                                                    params={group?.headerRendererParams ?? {}}
+                                                    sort={null}
+                                                    toggleSort={() => undefined}
+                                                />
+                                            ) : (
+                                                displayName
+                                            )}
+                                            {expandable ? (
+                                                <button
+                                                    type="button"
+                                                    data-grid-part="group-toggle"
+                                                    aria-expanded={open}
+                                                    aria-label={`${open ? 'Collapse' : 'Expand'} ${store.columns.getGroupLabel(cell.groupId!)}`}
+                                                    onClick={() =>
+                                                        store.setColumnGroupState(
+                                                            [{ groupId: cell.groupId!, open: !open }],
+                                                            'user'
+                                                        )
+                                                    }
+                                                >
+                                                    {open
+                                                        ? (props.icons?.columnGroupOpen ?? '−')
+                                                        : (props.icons?.columnGroupClosed ?? '+')}
+                                                </button>
+                                            ) : null}
+                                        </span>
+                                    </div>
+                                );
+                            }}
+                            renderHeaderCell={renderHeaderCell}
+                        />
+                        {!contentError && pinnedTop.length > 0 ? (
+                            <div data-grid-part="pinned-top">{pinnedTop.map((row) => renderPinnedRow(row))}</div>
+                        ) : null}
+                        {stuckRows.length > 0 ? (
+                            // No height of its own, so nothing below moves: the stuck rows hang over the body, and
+                            // a row being pushed out is clipped at the header instead of covering it.
+                            <div
+                                data-grid-part="sticky-rows"
+                                style={{ height: 0, clipPath: 'inset(0 -100vw -100vh -100vw)' }}
+                            >
+                                {stuckRows.map((stuck, position) => {
+                                    const row = source.rowAt(stuck.index);
+                                    const previous = stuckRows[position - 1];
+                                    const above = previous ? previous.top + previous.height : 0;
+
+                                    return row ? (
+                                        <Fragment key={stuck.id}>
+                                            {renderRow(row, stuck.index, {
+                                                'data-row-id': row.id,
+                                                'data-row-index': stuck.index,
+                                                'ref': undefined,
+                                                'style': { height: stuck.height, marginTop: stuck.top - above },
+                                            })}
+                                        </Fragment>
+                                    ) : null;
+                                })}
+                            </div>
+                        ) : null}
                     </div>
-                ) : null}
+                    {contentError ? (
+                        <div role="alert" data-grid-part="overlay">
+                            {contentError}
+                        </div>
+                    ) : null}
+                    {!contentError && overlayContent !== null ? (
+                        <div
+                            data-grid-part="overlay"
+                            data-overlay={overlay?.kind}
+                            data-overlay-reason={overlay?.kind === 'empty' ? overlay.reason : undefined}
+                            role="status"
+                            style={{ position: 'sticky', left: 0, width: '100%' }}
+                        >
+                            {overlayContent}
+                        </div>
+                    ) : null}
+                    <div role="rowgroup" data-grid-part="body">
+                        <VirtualRows
+                            virtualizer={vertical}
+                            renderRow={(row, index, rowProps) =>
+                                // A stuck row is drawn below the header; its own place keeps only its height.
+                                stuckIds.has(row.id) ? (
+                                    <div
+                                        {...rowProps}
+                                        aria-hidden="true"
+                                        data-grid-part="row-spacer"
+                                        style={{ height: vertical.layout.getRowBounds(index)?.height }}
+                                    />
+                                ) : (
+                                    renderRow(row, index, rowProps)
+                                )
+                            }
+                        />
+                    </div>
+                    {!contentError && pinnedBottom.length > 0 ? (
+                        <div
+                            role="rowgroup"
+                            data-grid-part="pinned-bottom"
+                            ref={pinnedBottomRef}
+                            style={{
+                                position: 'sticky',
+                                bottom: 0,
+                                maxHeight: props.pinnedBottomMaxHeight,
+                                overflowY: props.pinnedBottomMaxHeight !== undefined ? 'auto' : undefined,
+                                overflowX: props.pinnedBottomMaxHeight !== undefined ? 'hidden' : undefined,
+                                left: props.pinnedBottomMaxHeight !== undefined ? 0 : undefined,
+                                overscrollBehaviorY: 'contain',
+                                zIndex: 2,
+                                width:
+                                    props.pinnedBottomMaxHeight !== undefined
+                                        ? (scrollRef.current?.clientWidth ?? '100%')
+                                        : horizontal.window.totalWidth,
+                                minWidth: '100%',
+                            }}
+                        >
+                            {pinnedBottom.map((row) => renderPinnedRow(row))}
+                        </div>
+                    ) : null}
+                </div>
+                {props.footer ? <div data-grid-part="footer">{props.footer}</div> : null}
+                {menuProps ? props.renderMenu ? props.renderMenu(menuProps) : <DefaultMenu {...menuProps} /> : null}
+                {filterPanel}
+                {columnChooser}
             </div>
-            {props.footer ? <div data-grid-part="footer">{props.footer}</div> : null}
-            {menuProps ? props.renderMenu ? props.renderMenu(menuProps) : <DefaultMenu {...menuProps} /> : null}
-            {filterPanel}
-            {columnChooser}
-        </div>
+        </GridRootContext.Provider>
     );
 }
 
@@ -2475,6 +2488,8 @@ function ResizeHandle({
     width: number;
     onResize: (width: number, finished: boolean) => void;
 }) {
+    const hoverCell = useRef<Element | null>(null);
+    useEffect(() => () => hoverCell.current?.removeAttribute('data-resize-hover'), []);
     const onPointerDown = (event: ReactPointerEvent<HTMLSpanElement>) => {
         event.preventDefault();
         event.stopPropagation();
@@ -2497,6 +2512,18 @@ function ResizeHandle({
             data-resize={colId}
             data-edge={edge}
             onPointerDown={onPointerDown}
+            onPointerEnter={(event) => {
+                if (edge !== 'start' || event.pointerType !== 'mouse') return;
+                const previous = event.currentTarget.closest('[data-grid-part="header-cell"]')?.previousElementSibling;
+                if (previous?.getAttribute('data-grid-part') === 'header-cell') {
+                    hoverCell.current = previous;
+                    previous.setAttribute('data-resize-hover', '');
+                }
+            }}
+            onPointerLeave={() => {
+                hoverCell.current?.removeAttribute('data-resize-hover');
+                hoverCell.current = null;
+            }}
             onClick={(event) => event.stopPropagation()}
         />
     );

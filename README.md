@@ -12,7 +12,22 @@ npm install @nord-forge/the-grid
 
 React 19 is a peer dependency. The package has no runtime dependencies of its own.
 
-Browser requirements for the built-in theme and popup components: **Chrome/Edge 114+, Firefox 125+, Safari 17+ (iOS 17+)**. CI exercises current Chromium, Firefox, and WebKit; it does not run those historical minimum versions. See the [browser support table and legacy plan](https://the-grid.nickbevers.dev/reference/browser-support/). There is no legacy-browser entry point yet.
+Browser requirements for the standard theme and popup components: **Chrome/Edge 114+, Firefox 125+, Safari 17+ (iOS 17+)**. CI exercises current Chromium, Firefox, and WebKit; it does not run those historical minimum versions. See the [browser support table](https://the-grid.nickbevers.dev/reference/browser-support/).
+
+## Legacy browsers (unreleased)
+
+The current checkout includes an opt-in compatibility build targeting **Chrome/Edge 88+, Firefox 85+, Safari 14+**. It is not included in npm version 0.2.0; it will be available in the next package release. Import both the components and the theme from the legacy entry:
+
+```tsx
+import { Grid, createSelectCellEditor } from '@nord-forge/the-grid/legacy';
+import '@nord-forge/the-grid/legacy/styles.css';
+```
+
+The React API stays the same. The generated theme keeps zero specificity, removes cascade layers, and provides older-compatible colors, focus, clipping, and spacing. On browsers without the Popover API, only transient popup UI uses fixed portals; rows, cells, headers, and pinned columns remain in normal flow. Newer browsers still use native popovers.
+
+Use the same entry for all runtime imports in a grid. Import the legacy stylesheet instead of the standard stylesheet, and load application overrides after it. To customize accent tints, set both `--the-grid-accent` and `--the-grid-accent-rgb` (for example `#0f766e` and `15, 118, 110`). Native checkboxes use their operating system colors on older browsers.
+
+The compiled legacy bundle is tested in isolated current engines with the newer APIs disabled. Actual historical browser releases still need validation before this target can be certified. Your application and its dependencies must also be built for the target. See the [legacy guide](https://the-grid.nickbevers.dev/guides/legacy-browsers/).
 
 ## Use
 
@@ -87,6 +102,7 @@ To deploy on Vercel, import **nord-forge/the-grid** with the **repository root**
 | `npm run check:ci` | Type checks, serial unit/docs tests, guarded package build, and docs build |
 | `npm run release:check` | Verify release metadata and, when set, the exact `RELEASE_TAG` commit |
 | `npm run package:check` | Consume the packed archive: verify its runtime exports, TypeScript declarations, and stylesheet |
+| `npm run test:legacy` | Test the compiled legacy bundle and its popup fallback in isolated Chromium, Firefox, and WebKit |
 | `npm run playground` | Development fixtures; `?fixture=interactive` is the full grid with a theme, colour scheme and density switcher |
 | `npm run playground:check` | Browser checks for the playground fixtures (add `-- --browser=firefox` or `webkit`); results go to `playground/results/` |
 | `npm run format` | Format with oxfmt |
@@ -106,7 +122,7 @@ GitHub CI runs the package/docs checks and isolated browser tests. Releases publ
 
 ## Rules
 
-- No `position: absolute` or `position: fixed` in library code or CSS. Use normal flow, flex or grid, `position: sticky`, and portals for transient UI. The build guard enforces this for shipped code; the playground checks enforce it for computed layout.
+- No `position: absolute` in library code or CSS. The standard build also forbids fixed positioning. Only the legacy popup portal may use `position: fixed`; rows, cells, headers, and pinned sections use normal flow and sticky positioning. The build guard enforces the exception's bundle and source module, and browser checks verify computed layout.
 - No third-party grid imports, names or copied internals in `src/`.
 - Consumer code never needs to query grid DOM: rows, geometry and state come from the api (`src/contract/api.ts`).
 

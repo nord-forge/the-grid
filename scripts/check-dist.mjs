@@ -2,7 +2,7 @@
 /**
  * Guards the published package after a build:
  * - source maps reference only the package's own `src/` files (nothing copied in from elsewhere)
- * - no absolute positioning in shipped code or CSS
+ * - no absolute positioning; fixed positioning only in the legacy popup portal source and bundle
  * - runtime imports limited to the React peer dependencies
  * - dependencies in package.json limited to peers (nothing can arrive transitively)
  * - the packed file list contains only dist, README, LICENSE, CHANGELOG and package.json
@@ -30,14 +30,22 @@ for (const file of walk(dist)) {
     const name = relative(root, file);
     const text = readFileSync(file, 'utf8');
     if (file.endsWith('.map')) {
-        for (const source of JSON.parse(text).sources ?? []) {
+        const map = JSON.parse(text);
+        for (const [index, source] of (map.sources ?? []).entries()) {
             if (!/^(?:\.\.\/)+src\//.test(source)) {
                 failures.push(`${name}: maps a source outside src/ (${source})`);
             }
+            if (
+                /\bposition\s*:\s*['"]?fixed/.test(map.sourcesContent?.[index] ?? '') &&
+                (name !== 'dist/legacy.js.map' || source !== '../src/legacy/PopupSurface.tsx')
+            )
+                failures.push(`${name}: fixed positioning must come only from the legacy popup portal (${source})`);
         }
     }
-    if (/\.(js|css)$/.test(file) && /position\s*:\s*(absolute|fixed)/.test(text)) {
-        failures.push(`${name}: uses absolute or fixed positioning`);
+    if (/\.(js|css)$/.test(file)) {
+        if (/\bposition\s*:\s*['"]?absolute/.test(text)) failures.push(`${name}: uses absolute positioning`);
+        if (/\bposition\s*:\s*['"]?fixed/.test(text) && name !== 'dist/legacy.js')
+            failures.push(`${name}: uses fixed positioning outside the legacy popup bundle`);
     }
     if (file.endsWith('.js')) {
         for (const match of text.matchAll(
@@ -78,5 +86,5 @@ if (failures.length) {
     process.exit(1);
 }
 console.log(
-    `check-dist ok: ${packed.files.length} files, ${(packed.size / 1024).toFixed(1)} kB packed, no absolute positioning, React peers only`
+    `check-dist ok: ${packed.files.length} files, ${(packed.size / 1024).toFixed(1)} kB packed, fixed positioning limited to legacy popup portals, React peers only`
 );

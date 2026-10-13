@@ -76,7 +76,7 @@ export class WriteTracker {
         const outranked = entry.op.pending.some((op) => op.id > id) || entry.op.confirmedOp > id;
         let restore: { value: unknown } | undefined;
         if (!outranked && isShowing(entry.value)) {
-            const latest = entry.op.pending.at(-1);
+            const latest = entry.op.pending[entry.op.pending.length - 1];
             restore = { value: latest && latest.id > entry.op.confirmedOp ? latest.value : entry.op.confirmed };
         }
         this.#tidy(cell, entry.op);

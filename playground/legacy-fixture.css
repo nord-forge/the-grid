@@ -1,0 +1,35 @@
+body {
+    margin: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    font-family: Arial, sans-serif;
+}
+h1 {
+    font-size: 24px;
+}
+.fixture-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-block: 16px;
+}
+.clip-shell {
+    height: 360px;
+    width: min(760px, 100%);
+    overflow: hidden;
+    transform: translateZ(0);
+    border: 1px solid #64748b;
+}
+.legacy-grid {
+    --the-grid-accent: #0f766e;
+    --the-grid-accent-rgb: 15, 118, 110;
+}
+.brand-red .legacy-grid {
+    --the-grid-accent: #b91c1c;
+    --the-grid-accent-rgb: 185, 28, 28;
+}
+.brand-red {
+    font-family: 'Courier New', monospace;
+    letter-spacing: 0.5px;
+}

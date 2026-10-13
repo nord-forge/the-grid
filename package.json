@@ -29,7 +29,12 @@
             "types": "./dist/types/index.d.ts",
             "import": "./dist/index.js"
         },
-        "./styles.css": "./dist/styles.css"
+        "./styles.css": "./dist/styles.css",
+        "./legacy": {
+            "types": "./dist/types/legacy/index.d.ts",
+            "import": "./dist/legacy.js"
+        },
+        "./legacy/styles.css": "./dist/legacy.css"
     },
     "files": [
         "dist",
@@ -52,8 +57,9 @@
         "docs:build": "npm run build --prefix docs",
         "docs:preview": "npm run preview --prefix docs",
         "tsc": "tsc --noEmit",
-        "build": "vite build -c vite.lib.config.ts && tsc -p tsconfig.lib.json && node scripts/fix-declarations.mjs && cp src/styles/grid.css dist/styles.css && node scripts/check-styles.mjs && node scripts/check-dist.mjs",
+        "build": "vite build -c vite.lib.config.ts && vite build -c vite.lib.config.ts --mode legacy && tsc -p tsconfig.lib.json && node scripts/fix-declarations.mjs && node scripts/build-styles.mjs && node scripts/check-styles.mjs && node scripts/check-dist.mjs",
         "test": "vitest run src",
+        "test:legacy": "node playground/checks/legacy.mjs",
         "check": "npm run tsc && npm test && npm run build && npm run playground:check",
         "check:ci": "npm run tsc && vitest run src docs/checks --maxWorkers=1 && npm run build && npm run package:check && npm run docs:build",
         "package:check": "node scripts/check-package.mjs",
@@ -76,6 +82,7 @@
         "@vitejs/plugin-react": "^6.0.1",
         "oxfmt": "^0.64.0",
         "playwright": "1.59.1",
+        "postcss": "^8.5.28",
         "react": "^19.2.4",
         "react-dom": "^19.2.4",
         "typescript": "^7.0.2",

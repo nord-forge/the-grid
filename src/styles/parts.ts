@@ -103,6 +103,11 @@ export type GridPart = keyof typeof GRID_PARTS;
 
 /** State attributes, the parts they appear on, and what they mean. Values are present or absent unless noted. */
 export const GRID_STATES = {
+    'data-selection-header': 'header-content: contains the select-all checkbox.',
+    'data-full-width': 'row: contains a full-width cell, including group and detail rows.',
+    'data-resize-hover': 'header-cell: its end resize edge is hovered through the next column’s start handle.',
+    'data-popup-mode': 'menu, popup, select-listbox, filter-panel, column-chooser: "native" or "portal".',
+    'data-popup-portal': 'root: the legacy popup portal; inherits theme tokens from its owning grid.',
     'data-layout':
         'root: "virtual" mounts viewport rows and columns; "content" renders all displayed rows and columns.',
     'data-upload-target': 'root, row or cell: a permitted file drop target.',

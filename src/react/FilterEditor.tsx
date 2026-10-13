@@ -60,7 +60,8 @@ function ConditionsFilterEditor<TData>({ column, kind, condition, onChange }: Fi
         update({ ...state, conditions: state.conditions.map((existing, at) => (at === index ? entry : existing)) });
     // A further condition is offered once the last one applies, up to the maximum.
     const shown =
-        state.conditions.length < max && isConditionApplicable(state.conditions.at(-1) as never, filterParams)
+        state.conditions.length < max &&
+        isConditionApplicable(state.conditions[state.conditions.length - 1] as never, filterParams)
             ? [...state.conditions, fresh()]
             : state.conditions;
 

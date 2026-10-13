@@ -25,7 +25,7 @@ export default defineConfig({
         { label: 'Guides', items: [
           'guides/columns', 'guides/rows', 'guides/server-data',
           'guides/sorting-filtering', 'guides/grouping', 'guides/selection',
-          'guides/editing', 'guides/uploads', 'guides/styling', 'guides/saved-views',
+          'guides/editing', 'guides/uploads', 'guides/styling', 'guides/saved-views', 'guides/legacy-browsers',
         ] },
         { label: 'Reference', items: ['reference/grid', 'reference/api', 'reference/browser-support'] },
         { label: 'Project', items: ['architecture', 'deployment', 'releases'] },
