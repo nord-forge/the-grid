@@ -15,6 +15,22 @@ const checks = [];
 const config = {
     configFile: `${root}/playground/vite.config.ts`,
     logLevel: 'warn',
+    plugins: [
+        {
+            name: 'verify-compiled-legacy-input',
+            generateBundle(_options, bundle) {
+                const compiled = Object.values(bundle).some(
+                    (chunk) =>
+                        chunk.type === 'chunk' &&
+                        Object.keys(chunk.modules).some((id) => id.endsWith('/dist/legacy.js'))
+                );
+                assert(
+                    compiled,
+                    'Legacy browser checks must consume dist/legacy.js, not the source alias used by TypeScript.'
+                );
+            },
+        },
+    ],
     build: {
         outDir,
         emptyOutDir: true,

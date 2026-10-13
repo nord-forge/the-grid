@@ -1,15 +1,11 @@
 {
     "extends": "./tsconfig.base.json",
     "compilerOptions": {
-        "noEmit": true
+        "noEmit": true,
+        "paths": {
+            "@nord-forge/the-grid/legacy": ["./src/legacy/index.ts"]
+        }
     },
-    "include": [
-        "src/**/*.ts",
-        "src/**/*.tsx",
-        "playground/**/*.ts",
-        "playground/**/*.tsx"
-    ],
-    "exclude": [
-        "playground/vite.config.ts"
-    ]
+    "include": ["src/**/*.ts", "src/**/*.tsx", "playground/**/*.ts", "playground/**/*.tsx"],
+    "exclude": ["playground/vite.config.ts"]
 }
