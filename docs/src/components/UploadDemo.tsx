@@ -95,7 +95,7 @@ export default function UploadDemo() {
                 </div>
             </div>
             <h3>Attachments</h3>
-            <div data-grid-part="root" className="docs-grid">
+            <div data-grid-part="root" className="docs-grid not-content">
                 <AttachmentList
                     attachments={attachments}
                     onRemove={async (attachment) => {

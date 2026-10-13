@@ -709,6 +709,16 @@ try {
         assert.equal(await rows.count(), 3);
         assert.equal(await grid.locator('[data-grid-part="cell"]').count(), 24);
         assert.equal(await grid.locator('[data-grid-part="row-spacer"], [data-grid-part="col-spacer"]').count(), 0);
+        const aligned = await rows.evaluateAll((elements) =>
+            elements.every((row) => {
+                const bounds = row.getBoundingClientRect();
+                return [...row.querySelectorAll('[data-grid-part="cell"]')].every((cell) => {
+                    const rect = cell.getBoundingClientRect();
+                    return Math.abs(rect.y - bounds.y) < 1 && Math.abs(rect.height - bounds.height) < 1;
+                });
+            })
+        );
+        assert(aligned, 'Document prose styles must not shift cells or break their row borders');
         const heights = await rows.evaluateAll((elements) =>
             elements.map((element) => element.getBoundingClientRect().height)
         );

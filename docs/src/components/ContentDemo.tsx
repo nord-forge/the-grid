@@ -43,7 +43,7 @@ export default function ContentDemo() {
             : { type: 'local', rows, getRowId: (row) => row.id };
     }, [count, server, knownCount]);
     return (
-        <section aria-label="Content layout demo">
+        <section className="grid-demo not-content" aria-label="Content layout demo">
             <div className="demo-toolbar">
                 <button
                     type="button"
@@ -69,12 +69,12 @@ export default function ContentDemo() {
                 >
                     Focus last row
                 </button>
+                {server ? (
+                    <button type="button" onClick={() => setKnownCount((value) => !value)}>
+                        Server count: {knownCount ? 'known' : 'unknown'}
+                    </button>
+                ) : null}
             </div>
-            {server ? (
-                <button type="button" onClick={() => setKnownCount((value) => !value)}>
-                    Server count: {knownCount ? 'known' : 'unknown'}
-                </button>
-            ) : null}
             {server ? <p role="status">Server requests: {requests}</p> : null}
             <div style={{ height: mode === 'virtual' ? 180 : undefined }}>
                 <Grid
