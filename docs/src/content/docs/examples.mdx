@@ -5,24 +5,25 @@ description: Try sorting, filtering, grouping, selection, and editing on a live 
 
 import GridDemo from '../../components/GridDemo';
 
-This grid contains 1,000 generated people. It renders the rows and columns around the viewport while keeping the complete local dataset available to the API.
+Sort, filter, group, and edit 1,000 people. Double-click a cell to edit it.
 
 <GridDemo client:only="react"><p slot="fallback">Loading the interactive grid…</p></GridDemo>
 
 ## Try it
 
 - **Sort:** click a column heading. Shift-click another heading to add a sort column.
-- **Filter:** use the search field for a quick filter, or the filter button in a heading for a column filter.
+- **Filter:** use the search field for a quick filter, or hover over a column heading to reveal its filter button. Keyboard focus reveals it too.
 - **Group:** choose **Group by team**, then expand and collapse the groups.
 - **Select:** use the row checkboxes. The header checkbox selects all matching rows.
 - **Edit text:** double-click a name or role, type a new value, and press Enter. Escape cancels.
-- **Choose a team or status:** double-click a Team or Status cell to open its choices immediately. Selecting an option saves the choice. The **Open dropdown on double-click** checkbox disables automatic opening if you prefer to focus the editor first.
-- **Customize select icons:** choose Chevron, Caret, or None in the toolbar, then open a Team or Status editor. Indicators appear only while editing.
+- **Choose a team or status:** double-click a Team or Status cell to open its choices immediately. Selecting an option saves the choice. In **Settings**, the **Open dropdown on double-click** checkbox disables automatic opening if you prefer to focus the editor first.
+- **Customize select icons:** open **Settings** and choose Chevron, Caret, or None, then open a Team or Status editor. Indicators appear only while editing.
 - **Edit a budget:** double-click a Budget cell. The editor keeps the euro sign, right alignment, thousands separators, and two decimal places on entry. Type a non-negative amount with up to two decimal places. Enter or Tab saves it; Escape cancels. Sorting and filtering keep using numeric values.
-- **Upload:** choose a grid, focused row, or focused cell target in the upload panel, then choose files. Use **Drop scope** to test cell, row, and grid drops. Progress, cancellation, validation, and errors work through a local simulation; file contents are never sent or persisted. See the [upload guide](/guides/uploads/) for real transport.
 - **Ranges:** drag across cells, or use Shift with the arrow keys. Copy uses the formatted cell values.
 - **Paste and fill:** paste values into editable cells or drag the fill handle on a range. Team and Status accept their listed options; Budget accepts numbers and copied euro amounts. Invalid values are rejected without overwriting the original data.
 - **Layout:** resize a column using its header edge. The name column stays pinned while you scroll horizontally.
+
+Try [file uploads](/guides/uploads/#try-it) in their own focused example.
 
 Changes live only in this example. **Reset** creates fresh rows and resets the grid. The [editing guide](/guides/editing/) explains how to persist writes to your API.
 
@@ -40,7 +41,6 @@ The example imports `Grid` from this repository's current source. It uses a loca
   enableRanges
   enableFill
   stickyGroupRows
-  headerMenuButton
   headerFilterButton="always"
   ariaLabel="People example"
 />

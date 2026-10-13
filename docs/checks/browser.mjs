@@ -45,6 +45,11 @@ async function open(page, route = 'examples/') {
     else await cell(page, 'team').waitFor();
 }
 
+async function settings(page, expanded) {
+    const button = page.getByRole('button', { name: 'Demo settings', exact: true });
+    if (((await button.getAttribute('aria-expanded')) === 'true') !== expanded) await button.click();
+}
+
 async function edit(page, column, row = 'person-1') {
     const target = cell(page, column, row);
     if (column === 'team' || column === 'status') {
@@ -154,12 +159,38 @@ try {
     });
 
     await open(page);
+    await check('main demo starts with a compact toolbar and no upload or settings clutter', async () => {
+        assert.equal(await page.locator('.demo-toolbar select').count(), 0);
+        assert.equal(await page.locator('[data-grid-part="upload-panel"]').count(), 0);
+        assert.equal(await page.locator('.demo-settings').count(), 0);
+        assert.equal(await page.locator('[data-grid-part="header-menu-button"]').count(), 0);
+        const viewport = page.locator('.grid-demo [data-grid-part="viewport"]');
+        const overflow = await viewport.evaluate((element) => ({
+            width: element.clientWidth,
+            scroll: element.scrollWidth,
+        }));
+        assert(overflow.scroll <= overflow.width + 1, 'Desktop demo must fit all columns');
+        const toolbar = await page.locator('.demo-toolbar').boundingBox();
+        assert(toolbar.height < 80, 'Desktop toolbar must stay on one line');
+        await page.locator('.demo-toolbar').hover();
+        const filter = page.getByRole('button', { name: 'Filter Team', exact: true });
+        assert.equal(await filter.evaluate((element) => getComputedStyle(element).opacity), '0');
+        await page.locator('[data-grid-part="header-cell"][data-col-id="team"]').hover();
+        assert.equal(await filter.evaluate((element) => getComputedStyle(element).opacity), '1');
+        await page.locator('.demo-toolbar').hover();
+        await filter.focus();
+        assert.equal(await filter.evaluate((element) => getComputedStyle(element).opacity), '1');
+        await cell(page, 'name').click();
+        await page.locator('.grid-demo').screenshot({ path: `${artifacts}/clean-demo.png` });
+    });
+
     await check('no select indicators are rendered in display cells', async () => {
         assert.equal(await page.locator("[data-grid-part='select-icon'], .demo-choice-arrow").count(), 0);
         assert.equal(await cell(page, 'team').locator('svg').count(), 0);
     });
 
     await check('double-click immediately opens choices by default and can be disabled', async () => {
+        await settings(page, true);
         const toggle = page.getByRole('checkbox', { name: 'Open dropdown on double-click' });
         assert.equal(await toggle.isChecked(), true);
         for (const column of ['team', 'status']) {
@@ -185,6 +216,7 @@ try {
         await keyboardSelect.waitFor();
         assert.equal(await keyboardSelect.getAttribute('aria-expanded'), 'false');
         await keyboardSelect.press('Escape');
+        await settings(page, false);
     });
 
     await check('Team and Status dropdowns save choices and close', async () => {
@@ -227,7 +259,8 @@ try {
     });
 
     await check('select glyph can be replaced or hidden and stays inside the editor', async () => {
-        const picker = page.locator('.demo-toolbar label').filter({ hasText: 'Select icon' }).locator('select');
+        await settings(page, true);
+        const picker = page.locator('.demo-settings label').filter({ hasText: 'Select icon' }).locator('select');
         await picker.selectOption('caret');
         await edit(page, 'team');
         assert.equal(
@@ -243,6 +276,7 @@ try {
         assert.equal(await page.locator("[data-grid-part='select-icon']").count(), 0);
         await page.keyboard.press('Escape');
         await picker.selectOption('chevron');
+        await settings(page, false);
     });
 
     await check('quick filter, grouping, selection, and reset work', async () => {
@@ -304,6 +338,7 @@ try {
     });
 
     await check('file picker uploads grid, row and cell attachments with progress and errors', async () => {
+        await open(page, 'guides/uploads/');
         const target = page.getByRole('combobox', { name: 'Upload target' });
         const input = page.locator('[data-grid-part="upload-input"]');
         const activity = (name) => page.locator('[data-grid-part="upload-item"]').filter({ hasText: name });
@@ -343,7 +378,8 @@ try {
     });
 
     await check('file drops route to the configured cell, row or grid', async () => {
-        const scope = page.locator('.demo-toolbar label').filter({ hasText: 'Drop scope' }).locator('select');
+        await page.locator('.demo-upload-settings summary').click();
+        const scope = page.locator('.demo-upload-settings label').filter({ hasText: 'Drop scope' }).locator('select');
         for (const level of ['cell', 'row', 'grid']) {
             await scope.selectOption(level);
             await cell(page, 'name').evaluate((element, level) => {
@@ -465,6 +501,21 @@ try {
         await mobile.screenshot({ path: `${artifacts}/mobile-home.png` });
         assert(layout.scrollWidth <= layout.width + 1, JSON.stringify(layout));
         assert(layout.height > layout.lineHeight + 1, JSON.stringify(layout));
+        await open(mobile);
+        assert.equal(await mobile.locator('[data-grid-part="upload-panel"]').count(), 0);
+        assert.equal(await mobile.locator('.demo-settings').count(), 0);
+        assert(
+            (await mobile.locator('.demo-toolbar').boundingBox()).height < 135,
+            'Mobile toolbar should use only two rows'
+        );
+        await settings(mobile, true);
+        const exampleLayout = await mobile.evaluate(() => ({
+            width: document.documentElement.clientWidth,
+            scroll: document.documentElement.scrollWidth,
+        }));
+        assert(exampleLayout.scroll <= exampleLayout.width + 1, 'Mobile settings must not overflow the page');
+        await settings(mobile, false);
+        await mobile.locator('.grid-demo').screenshot({ path: `${artifacts}/mobile-demo.png` });
         await mobileContext.close();
     });
     assert.deepEqual(errors, [], 'Browser runtime errors');

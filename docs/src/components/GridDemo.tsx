@@ -1,10 +1,9 @@
 import { Grid, type GridApi } from '@nord-forge/the-grid';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useId, useMemo, useRef, useState } from 'react';
 import '@nord-forge/the-grid/styles.css';
 
 import { demoColumns } from './demoColumns';
 import { makeRows, type Person } from './demoData';
-import { demoUpload } from './demoUploads';
 
 export default function GridDemo({ preview = false }: { preview?: boolean }) {
     const api = useRef<GridApi<Person> | null>(null);
@@ -16,7 +15,8 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
     const [density, setDensity] = useState<'comfortable' | 'compact'>('comfortable');
     const [selectIcon, setSelectIcon] = useState<'chevron' | 'caret' | 'none'>('chevron');
     const [openSelectOnDoubleClick, setOpenSelectOnDoubleClick] = useState(true);
-    const [dropScope, setDropScope] = useState<'cell' | 'row' | 'grid'>('cell');
+    const [settingsOpen, setSettingsOpen] = useState(false);
+    const settingsId = useId();
     const [theme, setTheme] = useState<'light' | 'dark'>('light');
     const count = preview ? 24 : 1000;
     const rows = useMemo(() => makeRows(count), [count, revision]);
@@ -57,31 +57,6 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                         }}
                     />
                 </label>
-                {!preview && (
-                    <label className="demo-density">
-                        Density{' '}
-                        <select
-                            value={density}
-                            onChange={(event) => setDensity(event.target.value as 'comfortable' | 'compact')}
-                        >
-                            <option value="comfortable">Comfortable</option>
-                            <option value="compact">Compact</option>
-                        </select>
-                    </label>
-                )}
-                {!preview && (
-                    <label className="demo-density">
-                        Select icon{' '}
-                        <select
-                            value={selectIcon}
-                            onChange={(event) => setSelectIcon(event.target.value as 'chevron' | 'caret' | 'none')}
-                        >
-                            <option value="chevron">Chevron</option>
-                            <option value="caret">Caret</option>
-                            <option value="none">None</option>
-                        </select>
-                    </label>
-                )}
                 <button
                     type="button"
                     aria-pressed={grouped}
@@ -93,38 +68,59 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                 >
                     Group by team
                 </button>
-                {!preview && (
-                    <label className="demo-auto-open">
-                        <input
-                            type="checkbox"
-                            checked={openSelectOnDoubleClick}
-                            onChange={(event) => setOpenSelectOnDoubleClick(event.target.checked)}
-                        />
-                        Open dropdown on double-click
-                    </label>
-                )}
-                {!preview && (
-                    <label className="demo-density">
-                        Drop scope{' '}
-                        <select
-                            value={dropScope}
-                            onChange={(event) => setDropScope(event.target.value as 'cell' | 'row' | 'grid')}
-                        >
-                            <option value="cell">Nearest cell</option>
-                            <option value="row">Nearest row</option>
-                            <option value="grid">Grid</option>
-                        </select>
-                    </label>
-                )}
                 <button type="button" onClick={reset}>
                     Reset
                 </button>
+                {!preview && (
+                    <button
+                        type="button"
+                        aria-label="Demo settings"
+                        aria-expanded={settingsOpen}
+                        aria-controls={settingsOpen ? settingsId : undefined}
+                        onClick={() => setSettingsOpen((value) => !value)}
+                    >
+                        Settings
+                    </button>
+                )}
             </div>
-            {!preview && (
-                <p className="demo-upload-note">
-                    Uploads are simulated locally; file content is never sent. Try a file with “fail” in its name to see
-                    an error.
-                </p>
+            {settingsOpen && (
+                <div id={settingsId} className="demo-settings" aria-label="Demo settings">
+                    {!preview && (
+                        <label className="demo-density">
+                            Density{' '}
+                            <select
+                                value={density}
+                                onChange={(event) => setDensity(event.target.value as 'comfortable' | 'compact')}
+                            >
+                                <option value="comfortable">Comfortable</option>
+                                <option value="compact">Compact</option>
+                            </select>
+                        </label>
+                    )}
+                    {!preview && (
+                        <label className="demo-density">
+                            Select icon{' '}
+                            <select
+                                value={selectIcon}
+                                onChange={(event) => setSelectIcon(event.target.value as 'chevron' | 'caret' | 'none')}
+                            >
+                                <option value="chevron">Chevron</option>
+                                <option value="caret">Caret</option>
+                                <option value="none">None</option>
+                            </select>
+                        </label>
+                    )}
+                    {!preview && (
+                        <label className="demo-auto-open">
+                            <input
+                                type="checkbox"
+                                checked={openSelectOnDoubleClick}
+                                onChange={(event) => setOpenSelectOnDoubleClick(event.target.checked)}
+                            />
+                            Open dropdown on double-click
+                        </label>
+                    )}
+                </div>
             )}
             <div className="demo-viewport" style={{ height: preview ? 310 : 440 }}>
                 <Grid<Person>
@@ -137,18 +133,6 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                     colorScheme={theme}
                     density={density}
                     openSelectOnDoubleClick={openSelectOnDoubleClick}
-                    uploads={
-                        preview
-                            ? undefined
-                            : {
-                                  targets: { grid: true, row: dropScope !== 'grid', cell: dropScope === 'cell' },
-                                  accept: '.txt,.csv,.pdf,image/*',
-                                  maxFileSize: 2 * 1024 * 1024,
-                                  maxFiles: 5,
-                                  concurrency: 2,
-                                  upload: demoUpload,
-                              }
-                    }
                     icons={{
                         select:
                             selectIcon === 'none' ? (
@@ -164,7 +148,6 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                     enableRanges
                     enableFill
                     stickyGroupRows
-                    headerMenuButton
                     headerFilterButton="always"
                     ariaLabel="People example"
                     on={{
@@ -178,7 +161,7 @@ export default function GridDemo({ preview = false }: { preview?: boolean }) {
                 <span aria-live="polite">
                     {count.toLocaleString('en-GB')} rows · {selected} selected · {changes} changes
                 </span>
-                <span>Double-click to edit. Changes stay in this demo.</span>
+                <span>Double-click to edit. Changes stay here.</span>
             </div>
         </section>
     );

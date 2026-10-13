@@ -136,7 +136,8 @@ h3 {
     color: var(--sl-color-gray-2);
 }
 .demo-toolbar button,
-.demo-toolbar select {
+.demo-settings button,
+.demo-settings select {
     border: 1px solid var(--sl-color-gray-4);
     border-radius: 0.35rem;
     padding: 0.4rem 0.6rem;
@@ -151,7 +152,8 @@ h3 {
     border-color: var(--sl-color-accent);
 }
 .demo-toolbar button:focus-visible,
-.demo-toolbar select:focus-visible {
+.demo-settings button:focus-visible,
+.demo-settings select:focus-visible {
     outline: 2px solid var(--sl-color-accent);
     outline-offset: 2px;
 }
@@ -177,6 +179,14 @@ h3 {
     --the-grid-accent: #0f766e;
     --the-grid-radius: 0px;
     --the-grid-font-size: 12px;
+    --the-grid-background: var(--sl-color-bg);
+    --the-grid-foreground: var(--sl-color-text);
+    --the-grid-muted-foreground: var(--sl-color-gray-2);
+    --the-grid-header-background: var(--sl-color-gray-6);
+    --the-grid-header-foreground: var(--sl-color-text);
+    --the-grid-border-color: var(--sl-color-gray-5);
+    --the-grid-header-border-color: var(--sl-color-gray-5);
+    --the-grid-group-row-background: var(--sl-color-gray-6);
 }
 :root[data-theme='dark'] .docs-grid {
     --the-grid-accent: #5eead4;
@@ -217,10 +227,55 @@ h3 {
     .demo-toolbar {
         gap: 0.5rem;
     }
+    .demo-toolbar button {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.8rem;
+    }
     .demo-search {
         flex-basis: 100%;
     }
     .demo-footer {
         flex-direction: column;
+    }
+}
+
+.demo-settings {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--sl-color-gray-6);
+    border-bottom: 1px solid var(--sl-color-gray-5);
+}
+.demo-instructions {
+    color: var(--sl-color-gray-2);
+    font-size: 0.9rem;
+}
+.demo-upload-settings {
+    margin-block: 1rem;
+    font-size: 0.875rem;
+}
+.demo-upload-settings summary {
+    cursor: pointer;
+}
+.demo-upload-settings .demo-settings {
+    margin-top: 0.75rem;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+}
+.grid-demo .docs-grid {
+    border: 0;
+}
+.docs-grid [data-grid-part='header-filter-button']:not([data-active]) {
+    opacity: 0;
+}
+.docs-grid [data-grid-part='header-cell']:hover [data-grid-part='header-filter-button'],
+.docs-grid [data-grid-part='header-cell']:focus-within [data-grid-part='header-filter-button'] {
+    opacity: 1;
+}
+@media (hover: none) {
+    .docs-grid [data-grid-part='header-filter-button']:not([data-active]) {
+        opacity: 1;
     }
 }

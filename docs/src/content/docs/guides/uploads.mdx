@@ -3,7 +3,17 @@ title: File uploads
 description: Attach files at cell, row, and grid level with permissions, validation, progress, and cancellation.
 ---
 
+import UploadDemo from '../../../components/UploadDemo';
+
 Supply `uploads` to enable the file picker, drop targets, activity list, and upload API. All three levels are enabled by default. Without `uploads`, file handling stays disabled.
+
+## Try it
+
+Choose files below, or drop them on a cell or the header. Accepted files: text, CSV, PDF, and images, up to 2 MB each. Use a filename containing `fail` to try an error. Open **Drop settings** to test row and grid routing.
+
+<UploadDemo client:only="react" />
+
+## Connect your transport
 
 ```tsx
 <Grid<Person>
@@ -72,4 +82,4 @@ api.clearUploads(); // keeps queued and running tasks
 
 `uploadFiles()` resolves after every file in the batch reaches a terminal state, including rejection or cancellation. It returns an empty list when the grid has been destroyed. Calls without an `uploads` transport produce rejected tasks explaining that uploads are disabled. Existing row-reordering drags are separate from file drags.
 
-The [live example](/examples/) simulates uploads locally, including progress, cancellation, errors, and all three target levels. It does not send or persist file contents. Use a filename containing `fail` to exercise an error.
+The example above simulates uploads locally, including progress, cancellation, errors, and all three target levels. It does not send or persist file contents. Use a filename containing `fail` to exercise an error.
