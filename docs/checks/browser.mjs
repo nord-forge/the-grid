@@ -267,7 +267,13 @@ try {
         assert(toolbar.height < 80, 'Desktop toolbar must stay on one line');
         await page.locator('.demo-toolbar').hover();
         const filter = page.getByRole('button', { name: 'Filter Team', exact: true });
-        assert.equal(await filter.evaluate((element) => getComputedStyle(element).opacity), '0');
+        // Headless Firefox on Linux can report no hover-capable device. The touch fallback deliberately
+        // keeps these controls visible in that case; wait for style updates after moving the pointer.
+        const hoverCapable = await page.evaluate(() => matchMedia('(hover: hover)').matches);
+        await page.waitForFunction(({ element, opacity }) => getComputedStyle(element).opacity === opacity, {
+            element: await filter.elementHandle(),
+            opacity: hoverCapable ? '0' : '1',
+        });
         await page.locator('[data-grid-part="header-cell"][data-col-id="team"]').hover();
         assert.equal(await filter.evaluate((element) => getComputedStyle(element).opacity), '1');
         await page.locator('.demo-toolbar').hover();
