@@ -1,6 +1,6 @@
 {
     "name": "@nord-forge/the-grid",
-    "version": "0.2.0",
+    "version": "0.3.0",
     "type": "module",
     "description": "A virtualized React data grid in normal document flow. React is its only peer; no runtime dependencies.",
     "keywords": [

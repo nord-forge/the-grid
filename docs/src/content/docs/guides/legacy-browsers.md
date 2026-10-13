@@ -3,7 +3,7 @@ title: Legacy browsers (beta)
 description: Use the opt-in beta compatibility bundle and theme for the 2021 browser target, with testing still underway.
 ---
 
-**Availability: unreleased.** This entry exists in the current checkout and is planned for the next npm release. The published `0.2.0` package does not include it.
+**Availability: version 0.3.0 and later.** Older package versions do not include the legacy entry.
 
 :::caution[Beta feature]
 The legacy build is still being tested. The browser versions below are compatibility targets; support in those historical releases has not yet been verified. Test it in your target browsers before relying on it, and [report compatibility issues](https://github.com/nord-forge/the-grid/issues).

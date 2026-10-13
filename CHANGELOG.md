@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0 - 2026-10-13
 
 - Add opt-in beta legacy JavaScript and CSS entries targeting Chrome/Edge 88+, Firefox 85+, and Safari 14+, with generated CSS fallbacks and fixed portals only for transient UI on browsers without native popovers. Testing is still underway; historical browser support is not yet verified.
 - Replace relational CSS selectors with public state attributes and newer JavaScript helpers with compatible equivalents.

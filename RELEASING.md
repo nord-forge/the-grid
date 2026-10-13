@@ -11,6 +11,10 @@ CI runs type checks, unit and docs tests, package/style guards, the docs build, 
 
 ## Subsequent releases
 
+For a manual release, complete the version updates and checks below, then authenticate with `npm login --auth-type=web`. Publish either the checked checkout with `npm publish --access public --tag latest`, or a verified tarball with `npm publish /path/to/nord-forge-the-grid-VERSION.tgz --access public --tag latest`. Publishing a tarball does not run the checkout's prepublish hook, so run the checks and verify that exact archive with `node scripts/check-package.mjs /path/to/nord-forge-the-grid-VERSION.tgz` first.
+
+The steps below use automated publishing. Publishing a GitHub release or dispatching `release.yml` triggers npm publication. For a manual release, publish directly to npm; a GitHub release with the same version would trigger a second publication attempt.
+
 1. Update `package.json` and both root version entries in `package-lock.json`, and add a matching version section to `CHANGELOG.md`.
 2. Run the checks, commit the changes, and push to `main`. Wait for CI to pass.
 3. Create the version tag (for example `v0.2.0`) on the release commit and publish a GitHub release with that tag.

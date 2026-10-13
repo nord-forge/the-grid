@@ -30,11 +30,11 @@ Removing `:where()` alone would increase selector specificity and would not make
 
 Custom `renderMenu`, `renderPopup`, `renderFilterPanel`, and `renderColumnChooser` components can replace those hosts. Select editors also need a compatible replacement. Those hooks alone do not address the stylesheet and JavaScript requirements.
 
-## Legacy compatibility target (beta, unreleased)
+## Legacy compatibility target (beta)
 
 **Beta feature:** testing is still underway. Support in the historical browser releases below has not yet been verified. Test the build in your target browsers before relying on it, and [report compatibility issues](https://github.com/nord-forge/the-grid/issues).
 
-The checkout now has opt-in `@nord-forge/the-grid/legacy` and `@nord-forge/the-grid/legacy/styles.css` entries. They are planned for the next npm release and are not present in the published `0.2.0` package. See the [legacy guide](/guides/legacy-browsers/) for imports, theming, and popup behavior.
+Version **0.3.0** introduces opt-in `@nord-forge/the-grid/legacy` and `@nord-forge/the-grid/legacy/styles.css` entries. Older package versions do not include them. See the [legacy guide](/guides/legacy-browsers/) for imports, theming, and popup behavior.
 
 | Browser | Compatibility target | Verification |
 | --- | --- | --- |
